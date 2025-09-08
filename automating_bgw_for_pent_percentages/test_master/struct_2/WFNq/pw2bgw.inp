@@ -1,0 +1,20 @@
+&input_pw2bgw
+   prefix = 'pent'
+   outdir = './'
+   real_or_complex = 2
+   wfng_flag = .true.
+   wfng_file = 'WFN'
+   wfng_kgrid = .true.
+   wfng_nk1 =  4 
+   wfng_nk2 =  4 
+   wfng_nk3 =  2 
+   wfng_dk1 =  0.02 
+   wfng_dk2 =  0.02 
+   wfng_dk3 =  0.02 
+   vxc_flag =  .false. 
+   vxc_file = 'vxc.dat'
+   rhog_flag =  .false. 
+   rhog_file = 'RHO'
+   vxc_diag_nmin = 1
+   vxc_diag_nmax = 684
+/

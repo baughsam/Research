@@ -1,0 +1,58 @@
+#!/bin/bash -l
+#$ -l h_rt=12:00:00
+#$ -pe mpi_16_tasks_per_node 64
+#$ -N pent-auto_pt1
+#$ -P fpmats
+#$ -m bea
+#$ -t 1-2
+#$ -M baughs@bu.edu #change it to your email here or delete this line
+#Script used to run scf, then copy pent.save file into WFN, WFNq, WFN_fi
+
+
+module load openmpi/4.1.5_gnu-12.2.0
+module load quantumespresso/7.2
+module load gcc/12.2.0
+module load berkeleygw/3.1.0
+module load python3
+
+# The command that will be run by each task in the array
+run_command_scf="mpirun -np 64 pw.x < scf.in > scf.out"
+run_command_kgrid="mpirun -np 64 kgrid.x kgrid.inp kgrid.out kgrid.log"
+
+# Use the unique task ID provided by the scheduler
+# This replaces the 'for i in ...' loop
+i=$SGE_TASK_ID
+DIR_NAME="struct_${i}"
+
+# Check if the directory for this specific task exists
+if [ -d "$DIR_NAME" ]; then
+  cd "$DIR_NAME"
+  cd "./SCF"
+  echo "Running task $i in $(pwd)" # Good practice to log which task is running where
+  eval $run_command_scf
+  
+  cp -r "./pent.save" "../WFN/"
+  cp -r "./pent.save" "../WFNq/"
+  cp -r "./pent.save" "../WFN_fi/"
+
+  cd ..
+  #RUNNING kgrid CALCULATIONS#
+  #run kgrid in WFN
+  cd "./WFN"
+  echo "Running task $i in $(pwd)" # Good practice to log which task is running where
+  eval $run_command_kgrid
+  cd ..
+  #run kgrid in WFNq
+  cd "./WFNq"
+  echo "Running task $i in $(pwd)" # Good practice to log which task is running where
+  eval $run_command_kgrid
+  cd ..
+  #run kgrid in WFN_fi
+  cd "./WFN_fi"
+  echo "Running task $i in $(pwd)" # Good practice to log which task is running where
+  eval $run_command_kgrid
+  cd ../../
+else
+  echo "Warning: Task $i skipped because directory $DIR_NAME was not found."
+fi
+

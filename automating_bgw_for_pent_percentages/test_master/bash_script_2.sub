@@ -1,0 +1,48 @@
+#!/bin/bash -l
+#$ -l h_rt=12:00:00
+#$ -pe mpi_16_tasks_per_node 64
+#$ -N scf-pent
+#$ -P fpmats
+#$ -m bea
+#$ -t 1-2
+#$ -M baughs@bu.edu #change it to your email here or delete this line
+#Script used to run scf, then copy pent.save file into WFN, WFNq, WFN_fi
+
+
+module load openmpi/4.1.5_gnu-12.2.0
+module load quantumespresso/7.2
+
+# The command that will be run by each task in the array
+run_command_bands="mpirun -np 64 pw.x < bands.in > bands.out"
+run_command_pw2bgw="mpirun -np 64 pw2bgw.x < pw2bgw.inp > pw2bgw.out"
+
+# Use the unique task ID provided by the scheduler
+# This replaces the 'for i in ...' loop
+i=$SGE_TASK_ID
+DIR_NAME="struct_${i}"
+
+# Check if the directory for this specific task exists
+if [ -d "$DIR_NAME" ]; then
+  cd "$DIR_NAME"
+
+  cd "./WFN"
+  echo "Running task $i in $(pwd)" # Good practice to log which task is running where
+  eval $run_command_bands
+  eval $run_command_pw2bgw
+  cd ..
+  #run kgrid in WFNq
+  cd "./WFNq"
+  echo "Running task $i in $(pwd)" # Good practice to log which task is running where
+  eval $run_command_bands
+  eval $run_command_pw2bgw
+  cd ..
+  #run kgrid in WFN_fi
+  cd "./WFN_fi"
+  echo "Running task $i in $(pwd)" # Good practice to log which task is running where
+  eval $run_command_bands
+  eval $run_command_pw2bgw
+  cd ../../
+else
+  echo "Warning: Task $i skipped because directory $DIR_NAME was not found."
+fi
+

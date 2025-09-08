@@ -92,7 +92,7 @@ if __name__ == "__main__":
 
     # Define the input and output filenames
     CSV_FILE = '91cm-1_struc_1.csv'
-    TEMPLATE_FILE = 'kgrid_template.inp'
+    TEMPLATE_FILE = '../mean_field_automation_official/kgrid_template.inp'
     OUTPUT_FILE = ('kgrid_test.inp')
 
     # Run the main function

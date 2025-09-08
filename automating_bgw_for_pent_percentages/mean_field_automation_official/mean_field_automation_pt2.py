@@ -1,5 +1,17 @@
+import os
+import subprocess
 import pandas as pd
 import sys
+
+#parameters that can be changed
+
+#NUMER OF STRUCTURES#
+num_of_structs = 2
+
+#BANDS.IN
+nbnd_WFN = 684
+nbnd_WFNq = 105
+nbnd_WFN_fi = 132
 
 
 def create_bands_input(template_path, csv_path, kgrid_path, output_path, new_nbnd):
@@ -92,25 +104,47 @@ def create_bands_input(template_path, csv_path, kgrid_path, output_path, new_nbn
     print(f"✅ Successfully created '{output_path}'.")
 
 
-# ===================================================================
-# --- MAIN EXECUTION BLOCK ---
-# You can change the values here
-# ===================================================================
-if __name__ == "__main__":
-    # ==> 1. Set the desired number of bands (nbnd)
-    NUMBER_OF_BANDS = 1000
+#RUN STARTS#
 
-    # ==> 2. Define the input and output filenames
-    TEMPLATE_FILE = 'bands_template'
-    COORDINATES_CSV = '91cm-1_struc_2.csv'
-    KGRID_FILE = 'kgrid.out'
-    OUTPUT_FILE = 'bands.in'
+#loop that:
+#   - Goes into struct_x folder
+#       - Creates bands.in from kgrid.out K_POINTS
+for i in range(1,num_of_structs+1):
+    dir_name = f'struct_{i}'
+    os.chdir(dir_name)
+    print("Inside directory " + dir_name)
+    os.chdir("./WFN")
+    print(f"Directory after going back: {os.getcwd()}")
+    create_bands_input(template_path="../../bands_template", csv_path="../../91cm-1_struc_"+str(i)+".csv",
+                       kgrid_path="../master/kgrid.out", output_path="../master/bands.in", new_nbnd=nbnd_WFN)
+    os.chdir("../WFNq")
+    create_bands_input(template_path="../../bands_template", csv_path="../../91cm-1_struc_" + str(i) + ".csv",
+                       kgrid_path="../master/kgrid.out", output_path="../master/bands.in", new_nbnd=nbnd_WFNq)
+    os.chdir("../WFN_fi")
+    create_bands_input(template_path="../../bands_template", csv_path="../../91cm-1_struc_" + str(i) + ".csv",
+                       kgrid_path="../master/kgrid.out", output_path="../master/bands.in", new_nbnd=nbnd_WFN_fi)
+    os.chdir("../../")
 
-    # ==> 3. Run the main function
-    create_bands_input(
-        template_path=TEMPLATE_FILE,
-        csv_path=COORDINATES_CSV,
-        kgrid_path=KGRID_FILE,
-        output_path=OUTPUT_FILE,
-        new_nbnd=NUMBER_OF_BANDS
+# runs bash_script_2.sub
+try:
+    # check=True will raise an exception if the script fails (returns a non-zero exit code).
+    # capture_output=True saves the script's output.
+    # text=True decodes the output as a string (instead of bytes).
+    result = subprocess.run(
+        ["qsub", "bash_script_2.sub"],
+        check=True,
+        capture_output=True,
+        text=True
     )
+
+    # Print the standard output from the bash script
+    print("Script output:")
+    print(result.stdout)
+except FileNotFoundError:
+    print("Error: 'bash' script not found in the current directory.")
+except subprocess.CalledProcessError as e:
+    print(f"Error: Script failed with exit code {e.returncode}")
+    print("Standard Error:")
+    print(e.stderr)
+
+print("Make sure you watch those calculations!")

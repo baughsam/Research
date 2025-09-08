@@ -1,9 +1,58 @@
 import os
 import subprocess
 import pandas as pd
-import sys
 
+# parameters that can be changed
+#NUMBER OF STRUCTURES#
+num_of_structs = 2
 
+#kgrid parameters
+WFN_header = [
+    [4, 4, 2],
+    [0.0, 0.0, 0.0],
+    [0.0, 0.0, 0.0]]
+WFNq_header = [
+    [4, 4, 2],
+    [0.0, 0.0, 0.0],
+    [0.005, 0.005, 0.01]]
+WFN_fi_header = [
+        [8, 8, 4],
+        [0.0, 0.0, 0.0],
+        [0.0, 0.0, 0.0]]
+
+#pw2bgw parameters
+WFN_parameters_pw2bgw = {
+    'wfng_nk1': 4,
+    'wfng_nk2': 4,
+    'wfng_nk3': 2,
+    'wfng_dk1': 0,
+    'wfng_dk2': 0,
+    'wfng_dk3': 0,
+    'vxc_flag': '.true.',
+    'rhog_flag': '.true.'
+}
+WFNq_parameters_pw2bgw = {
+    'wfng_nk1': 4,
+    'wfng_nk2': 4,
+    'wfng_nk3': 2,
+    'wfng_dk1': 0.02,
+    'wfng_dk2': 0.02,
+    'wfng_dk3': 0.02,
+    'vxc_flag': '.false.',
+    'rhog_flag': '.false.'
+}
+WFN_fi_parameters_pw2bgw = {
+    'wfng_nk1': 8,
+    'wfng_nk2': 8,
+    'wfng_nk3': 4,
+    'wfng_dk1': 0,
+    'wfng_dk2': 0,
+    'wfng_dk3': 0,
+    'vxc_flag': '.false.',
+    'rhog_flag': '.false.'
+}
+
+#FUNCTIONS
 def update_scf_coordinates(template_file, csv_file, output_file):
     """
     Reads atomic coordinates from a CSV and updates an SCF template file.
@@ -184,9 +233,7 @@ def update_pw2bgw_parameters(template_path, output_path, params_to_change):
     if not_found:
         print(f"\n⚠️ Warning: The following parameters were not found in the template: {', '.join(not_found)}")
 
-
-
-
+#goes into SCF, makes scf.in, returns to struct_x directory
 def SCF_dir(template_file, csv_file, output_file):
     os.makedirs("SCF", exist_ok=True)
     print("Made SCF inside " + dir_name)
@@ -196,6 +243,7 @@ def SCF_dir(template_file, csv_file, output_file):
     os.chdir('../')
     print(f"Current directory: {os.getcwd()}")
 
+#goes into WFN directories, makes kgrid.in and pw2bgw.in, returns to struct_x directory
 #must specify three different headers for WFN, WFNq, WFN_fi
 def WFNs_dirs(csv_path, template_path_kgrid, template_path_pw2bgw, output_path_kgrid, output_path_pw2bgw, header_vectors, wfn_dir_name,params):
     os.makedirs(wfn_dir_name, exist_ok=True)
@@ -209,55 +257,13 @@ def WFNs_dirs(csv_path, template_path_kgrid, template_path_pw2bgw, output_path_k
 
 
 
-WFN_header = [
-    [4, 4, 2],
-    [0.0, 0.0, 0.0],
-    [0.0, 0.0, 0.0]]
-WFNq_header = [
-    [4, 4, 2],
-    [0.0, 0.0, 0.0],
-    [0.005, 0.005, 0.01]]
-WFN_fi_header = [
-        [8, 8, 4],
-        [0.0, 0.0, 0.0],
-        [0.0, 0.0, 0.0]]
-WFN_parameters_pw2bgw = {
-    'wfng_nk1': 4,
-    'wfng_nk2': 4,
-    'wfng_nk3': 2,
-    'wfng_dk1': 0,
-    'wfng_dk2': 0,
-    'wfng_dk3': 0,
-    'vxc_flag': '.true.',
-    'rhog_flag': '.true.'
-}
-WFNq_parameters_pw2bgw = {
-    'wfng_nk1': 4,
-    'wfng_nk2': 4,
-    'wfng_nk3': 2,
-    'wfng_dk1': 0.02,
-    'wfng_dk2': 0.02,
-    'wfng_dk3': 0.02,
-    'vxc_flag': '.false.',
-    'rhog_flag': '.false.'
-}
-WFN_fi_parameters_pw2bgw = {
-    'wfng_nk1': 8,
-    'wfng_nk2': 8,
-    'wfng_nk3': 4,
-    'wfng_dk1': 0,
-    'wfng_dk2': 0,
-    'wfng_dk3': 0,
-    'vxc_flag': '.false.',
-    'rhog_flag': '.false.'
-}
+#RUN STARTS#
 
-num_of_structs = 2
 #loop that:
 #   - makes x_num of structure files
 #   - after 1 structure file is made:
-#       -  Creates SCF folder
-#        - Puts new scf in the folder
+#       -  Creates SCF folder; Puts new scf.in the folder
+#        - Creates WFN, WFNq, and WFN_fi; Puts kgrid.in and pw2bgw.in in the folders
 for i in range(1,num_of_structs+1):
     dir_name = f'struct_{i}'
     os.makedirs(dir_name, exist_ok=True)
@@ -266,18 +272,18 @@ for i in range(1,num_of_structs+1):
     print("Inside directory " + dir_name)
     # Making SCF Directory; Putting scf.in files inside; returns to master directory
     SCF_dir(template_file="../../scf_template.in", csv_file="../../91cm-1_struc_"+str(i)+".csv", output_file="scf.in")
-    #MAKING WFN DIRECTORIES
+    #MAKING WFN DIRECTORIES: Puts kgrid.in and pw2bgw.in files into created WFN, WFNq, and WFN_fi folders; returns to master directory
     ##WFNq
-    WFNs_dirs(wfn_dir_name="WFN",template_path_kgrid="../../kgrid_template.inp",
-              csv_path="../../91cm-1_struc_"+str(i)+".csv", output_path_kgrid="./kgrid.inp", header_vectors=WFN_header,
+    WFNs_dirs(wfn_dir_name="WFN", template_path_kgrid="../../kgrid_template.inp",
+              csv_path="../../91cm-1_struc_"+str(i)+".csv", output_path_kgrid="../master/kgrid.inp", header_vectors=WFN_header,
               template_path_pw2bgw="../../pw2bgw_template.inp", output_path_pw2bgw="./pw2bgw.inp", params=WFN_parameters_pw2bgw)
     ##WFNq
     WFNs_dirs(wfn_dir_name="WFNq", template_path_kgrid="../../kgrid_template.inp",
-              csv_path="../../91cm-1_struc_" + str(i) + ".csv", output_path_kgrid="./kgrid.inp", header_vectors=WFNq_header,
+              csv_path="../../91cm-1_struc_" + str(i) + ".csv", output_path_kgrid="../master/kgrid.inp", header_vectors=WFNq_header,
               template_path_pw2bgw="../../pw2bgw_template.inp", output_path_pw2bgw="./pw2bgw.inp", params=WFNq_parameters_pw2bgw)
     ##WFN_fi
     WFNs_dirs(wfn_dir_name="WFN_fi", template_path_kgrid="../../kgrid_template.inp",
-              csv_path="../../91cm-1_struc_" + str(i) + ".csv", output_path_kgrid="./kgrid.inp", header_vectors=WFN_fi_header,
+              csv_path="../../91cm-1_struc_" + str(i) + ".csv", output_path_kgrid="../master/kgrid.inp", header_vectors=WFN_fi_header,
               template_path_pw2bgw="../../pw2bgw_template.inp", output_path_pw2bgw="./pw2bgw.inp", params=WFN_fi_parameters_pw2bgw)
     os.chdir('../')
 
@@ -285,6 +291,7 @@ for i in range(1,num_of_structs+1):
 
 print(f"Current Directory{os.getcwd()}")
 
+#Runs bash_script_1.sub
 try:
     # check=True will raise an exception if the script fails (returns a non-zero exit code).
     # capture_output=True saves the script's output.
@@ -306,4 +313,5 @@ except subprocess.CalledProcessError as e:
     print("Standard Error:")
     print(e.stderr)
 
+#A reminder!
 print("Run mean_field_automation_pt2.py after bash_script_1.sub is complete.")

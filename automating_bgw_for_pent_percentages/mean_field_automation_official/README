@@ -1,0 +1,33 @@
+09-08-2025
+This is very specific to the pentacene system. Perhaps I can make it general, but that seems more exhaustive than I want.
+How to run:
+- Copy into 'master' folder
+    - bands_template
+    - kgrid_template.inp
+    - scf_template.in
+    - pw2bgw_template.inp
+    - mean_field_automation_pt1.py
+    - mean_field_automation_pt2.py
+    - bash_script_1.sub
+    - bash_script_2.sub
+    - all structures
+            NOTE: structures need to be labelled struct_x, where x are integers starting from 1 and going up.
+
+- In mean_field_automation_pt1.py change:
+ - parameters ~ WFN, WFNq, and WFN_fi
+ - parameters ~ pw2bgw.x
+ - number of structures
+
+- In mean_field_automation_pt2.py change:
+ - nbnb ~ bands.in
+ - number of structures
+
+- In bash_script_1 change:
+    - Cores
+    - number of calculations (number of structures)
+
+- In bash_script_2 change:
+    - Cores
+    - number of calculations (number of structures)
+
+Make sure all the parameters are what you want them to be. Then you run pt1.py, wait for the calculations to finish, then run pt2.py.

@@ -1,0 +1,94 @@
+#!/bin/bash -l
+#$ -l h_rt=12:00:00
+#$ -pe mpi_64_tasks_per_node 128
+#$ -N scf-pent
+#$ -P fpmats
+#$ -m bea
+#$ -t 1-2
+#$ -M baughs@bu.edu #change it to your email here or delete this line
+#Script used to run scf, then copy pent.save file into WFN, WFNq, WFN_fi
+
+module load openmpi/4.1.5_nvidia-2023-23.5
+module load quantumespresso/7.3
+
+# The command that will be run by each task in the array
+run_command_scf="mpirun -np 128 pw.x < scf.in > scf.out"
+run_command_kgrid="mpirun -np 128 kgrid.x kgrid.inp kgrid.out kgrid.log"
+
+# Use the unique task ID provided by the scheduler
+# This replaces the 'for i in ...' loop
+i=$SGE_TASK_ID
+DIR_NAME="struct_${i}"
+
+# Check if the directory for this specific task exists
+if [ -d "$DIR_NAME" ]; then
+  cd "$DIR_NAME"
+  cd "./SCF"
+  echo "Running task $i in $(pwd)" # Good practice to log which task is running where
+  eval $run_command_scf
+  cd ..
+
+  cp -r "$DIR_NAME/pent.save" "../WFN/"
+  cp -r "$DIR_NAME/pent.save" "../WFNq/"
+  cp -r "$DIR_NAME/pent.save" "../WFN_fi/"
+
+  if [ -d "$DIR_NAME" ]; then
+    #RUNNING kgrid CALCULATIONS#
+    module load gcc/12.2.0
+    module load openmpi/4.1.5_gnu-12.2.0
+    module load berkeleygw/3.1.0
+    cd "$DIR_NAME"
+    #run kgrid in WFN
+    cd "./WFN"
+    echo "Running task $i in $(pwd)" # Good practice to log which task is running where
+    eval $run_command_kgrid
+    cd ..
+    #run kgrid in WFNq
+    cd "./WFNq"
+    echo "Running task $i in $(pwd)" # Good practice to log which task is running where
+    eval $run_command_kgrid
+    #run kgrid in WFN_fi
+    cd "./WFN_fi"
+    echo "Running task $i in $(pwd)" # Good practice to log which task is running where
+    eval $run_command_kgrid
+  else
+    echo "Warning: Task $i skipped because directory $DIR_NAME was not found."
+  fi
+
+else
+  echo "Warning: Task $i skipped because directory $DIR_NAME was not found."
+fi
+
+#cp -r "$DIR_NAME/pent.save" "../WFN/"
+#cp -r "$DIR_NAME/pent.save" "../WFNq/"
+#cp -r "$DIR_NAME/pent.save" "../WFN_fi/"
+
+
+#RUNNING kgrid CALCULATIONS#
+#module load gcc/12.2.0
+#module load openmpi/4.1.5_gnu-12.2.0
+#module load berkeleygw/3.1.0
+
+if [ -d "$DIR_NAME" ]; then
+  #RUNNING kgrid CALCULATIONS#
+  module load gcc/12.2.0
+  module load openmpi/4.1.5_gnu-12.2.0
+  module load berkeleygw/3.1.0
+  cd "$DIR_NAME"
+  #run kgrid in WFN
+  cd "./WFN"
+  echo "Running task $i in $(pwd)" # Good practice to log which task is running where
+  eval $run_command_kgrid
+  cd ..
+  #run kgrid in WFNq
+  cd "./WFNq"
+  echo "Running task $i in $(pwd)" # Good practice to log which task is running where
+  eval $run_command_kgrid
+  #run kgrid in WFN_fi
+  cd "./WFN_fi"
+  echo "Running task $i in $(pwd)" # Good practice to log which task is running where
+  eval $run_command_kgrid
+else
+  echo "Warning: Task $i skipped because directory $DIR_NAME was not found."
+fi
+
