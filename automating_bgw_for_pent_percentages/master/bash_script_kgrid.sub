@@ -1,0 +1,34 @@
+#!/bin/bash -l
+#$ -l h_rt=12:00:00
+#$ -pe mpi_64_tasks_per_node 128
+#$ -N scf-pent
+#$ -P fpmats
+#$ -m bea
+#$ -t 1-2
+#$ -M baughs@bu.edu #change it to your email here or delete this line
+
+
+
+#RUNNING kgrid CALCULATIONS#
+module load gcc/12.2.0
+module load openmpi/4.1.5_gnu-12.2.0
+module load berkeleygw/3.1.0
+
+if [ -d "$DIR_NAME" ]; then
+  cd "$DIR_NAME"
+  #run kgrid in WFN
+  cd "./WFN"
+  echo "Running task $i in $(pwd)" # Good practice to log which task is running where
+  eval $run_command_kgrid
+  cd ..
+  #run kgrid in WFNq
+  cd "./WFNq"
+  echo "Running task $i in $(pwd)" # Good practice to log which task is running where
+  eval $run_command_kgrid
+  #run kgrid in WFN_fi
+  cd "./WFN_fi"
+  echo "Running task $i in $(pwd)" # Good practice to log which task is running where
+  eval $run_command_kgrid
+else
+  echo "Warning: Task $i skipped because directory $DIR_NAME was not found."
+fi
