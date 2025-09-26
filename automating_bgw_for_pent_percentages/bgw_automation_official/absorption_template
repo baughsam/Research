@@ -1,0 +1,21 @@
+diagonalization
+
+number_val_bands_coarse 20
+number_val_bands_fine 9
+number_cond_bands_coarse 20
+number_cond_bands_fine 9
+
+use_symmetries_coarse_grid
+no_symmetries_fine_grid
+
+screening_semiconductor
+
+use_momentum
+
+gaussian_broadening
+energy_resolution 0.05
+
+eqp_co_corrections
+
+write_eigenvectors -1
+

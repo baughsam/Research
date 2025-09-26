@@ -8,6 +8,9 @@ import sys
 #NUMER OF STRUCTURES#
 num_of_structs = 2
 
+#.csv file prefix
+csv_prefix = "91cm-1_struc_"
+
 #BANDS.IN
 nbnd_WFN = 684
 nbnd_WFNq = 105
@@ -115,14 +118,14 @@ for i in range(1,num_of_structs+1):
     print("Inside directory " + dir_name)
     os.chdir("./WFN")
     print(f"Directory after going back: {os.getcwd()}")
-    create_bands_input(template_path="../../bands_template", csv_path="../../91cm-1_struc_"+str(i)+".csv",
-                       kgrid_path="../master/kgrid.out", output_path="../master/bands.in", new_nbnd=nbnd_WFN)
+    create_bands_input(template_path="../../bands_template", csv_path="../../"+csv_prefix+str(i)+".csv",
+                       kgrid_path="./kgrid.out", output_path="./bands.in", new_nbnd=nbnd_WFN)
     os.chdir("../WFNq")
-    create_bands_input(template_path="../../bands_template", csv_path="../../91cm-1_struc_" + str(i) + ".csv",
-                       kgrid_path="../master/kgrid.out", output_path="../master/bands.in", new_nbnd=nbnd_WFNq)
+    create_bands_input(template_path="../../bands_template", csv_path="../../"+csv_prefix+str(i)+".csv",
+                       kgrid_path="./kgrid.out", output_path="./bands.in", new_nbnd=nbnd_WFNq)
     os.chdir("../WFN_fi")
-    create_bands_input(template_path="../../bands_template", csv_path="../../91cm-1_struc_" + str(i) + ".csv",
-                       kgrid_path="../master/kgrid.out", output_path="../master/bands.in", new_nbnd=nbnd_WFN_fi)
+    create_bands_input(template_path="../../bands_template", csv_path="../../"+csv_prefix+str(i)+".csv",
+                       kgrid_path="./kgrid.out", output_path="./bands.in", new_nbnd=nbnd_WFN_fi)
     os.chdir("../../")
 
 # runs bash_script_2.sub

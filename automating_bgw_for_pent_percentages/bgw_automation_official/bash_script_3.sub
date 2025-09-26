@@ -1,0 +1,60 @@
+#!/bin/bash -l
+#$ -l h_rt=12:00:00
+#$ -pe mpi_64_tasks_per_node *512* -q 4
+#$ -N bgw-auto-pent
+#$ -P fpmats
+#$ -m bea
+#$ -t 1-10
+#$ -M baughs@bu.edu
+
+# Exit immediately if a command exits with a non-zero status.
+set -e
+
+module load gcc/12.2.0
+module load openmpi/4.1.5_gnu-12.2.0
+module load berkeleygw/3.1.0
+
+# The commands that will be run
+run_command_epsilon="mpirun -np 512 epsilon.cplx.x epsilon.inp epsilon.out epsilon.log"
+run_command_sigma="mpirun -np 512 sigma.cplx.x sigma.inp sigma.out sigma.log"
+run_command_kernel="mpirun -np 512 kernel.cplx.x kernel.inp kernel.out kernel.log"
+run_command_absorption="mpirun -np 512 absorption.cplx.x absorption.inp absorption.out absorption.log"
+
+# Use the unique task ID provided by the scheduler
+i=$SGE_TASK_ID
+DIR_NAME="struct_${i}"
+
+# Check if the directory for this specific task exists
+if [ -d "$DIR_NAME" ]; then
+  cd "$DIR_NAME"
+  
+  echo "--- Starting task $i in $(pwd) ---"
+
+  # Run EPSILON
+   cd "./EPSILON"
+  echo "Running EPSILON in $(pwd)"
+  $run_command_epsilon
+  cd ..
+
+  # Run SIGMA
+  cd "./SIGMA"
+  echo "Running SIGMA in $(pwd)"
+  $run_command_sigma
+  cd ..
+  
+  # Run KERNEL
+  cd "./KERNEL"
+  echo "Running KERNEL in $(pwd)"
+  $run_command_kernel
+  cd ..
+  
+  # Run ABSORPTION
+  cd "./ABSORPTION"
+  echo "Running ABSORPTION in $(pwd)"
+  $run_command_absorption
+  cd ..
+
+  echo "--- Task $i completed ---"
+else
+  echo "Warning: Task $i skipped because directory $DIR_NAME was not found."
+fi

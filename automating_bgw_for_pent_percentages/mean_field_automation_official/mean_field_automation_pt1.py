@@ -6,6 +6,9 @@ import pandas as pd
 #NUMBER OF STRUCTURES#
 num_of_structs = 2
 
+#.csv file prefix
+csv_prefix = "91cm-1_struc_"
+
 #kgrid parameters
 WFN_header = [
     [4, 4, 2],
@@ -275,15 +278,15 @@ for i in range(1,num_of_structs+1):
     #MAKING WFN DIRECTORIES: Puts kgrid.in and pw2bgw.in files into created WFN, WFNq, and WFN_fi folders; returns to master directory
     ##WFNq
     WFNs_dirs(wfn_dir_name="WFN", template_path_kgrid="../../kgrid_template.inp",
-              csv_path="../../91cm-1_struc_"+str(i)+".csv", output_path_kgrid="../master/kgrid.inp", header_vectors=WFN_header,
+              csv_path="../../"+csv_prefix+str(i)+".csv", output_path_kgrid="./kgrid.inp", header_vectors=WFN_header,
               template_path_pw2bgw="../../pw2bgw_template.inp", output_path_pw2bgw="./pw2bgw.inp", params=WFN_parameters_pw2bgw)
     ##WFNq
     WFNs_dirs(wfn_dir_name="WFNq", template_path_kgrid="../../kgrid_template.inp",
-              csv_path="../../91cm-1_struc_" + str(i) + ".csv", output_path_kgrid="../master/kgrid.inp", header_vectors=WFNq_header,
+              csv_path="../../"+csv_prefix+str(i)+".csv", output_path_kgrid="./kgrid.inp", header_vectors=WFNq_header,
               template_path_pw2bgw="../../pw2bgw_template.inp", output_path_pw2bgw="./pw2bgw.inp", params=WFNq_parameters_pw2bgw)
     ##WFN_fi
     WFNs_dirs(wfn_dir_name="WFN_fi", template_path_kgrid="../../kgrid_template.inp",
-              csv_path="../../91cm-1_struc_" + str(i) + ".csv", output_path_kgrid="../master/kgrid.inp", header_vectors=WFN_fi_header,
+              csv_path="../../"+csv_prefix+str(i)+".csv", output_path_kgrid="./kgrid.inp", header_vectors=WFN_fi_header,
               template_path_pw2bgw="../../pw2bgw_template.inp", output_path_pw2bgw="./pw2bgw.inp", params=WFN_fi_parameters_pw2bgw)
     os.chdir('../')
 
