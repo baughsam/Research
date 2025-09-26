@@ -1,0 +1,27 @@
+09-26-2025
+This is very specific to the pentacene system. Perhaps I can make it general, but that seems more exhaustive than I want.
+How to run:
+- Copy into 'master' folder
+    - epsilon_template
+    - sigma_template
+    - kernel_template
+    - absorption_template
+    - bgw_automation.py
+    - bash_script_3.sub
+    - all structures
+            NOTE: structures need to be labelled struct_x, where x are integers starting from 1 and going up.
+
+- In bgw_automation.py change:
+ - number of structures
+ - template names
+ - output names
+ - first qpoint weight (epsilon)
+ - first qpoint shift (epsilon)
+
+
+- In bash_script_3 change:
+    - Cores
+    - number of calculations (number of structures)
+
+Make sure all parameters are what you want them to be, then run bgw_automation.py.
+NOTE: If you've already ran this once, either comment out the linking section or delete all of your folders. Otherwise there will be an error.
