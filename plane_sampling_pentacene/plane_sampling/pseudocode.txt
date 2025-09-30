@@ -1,0 +1,24 @@
+09-29-2025
+Read in:
+     - .csv file of the coordinates [index_num, type_of_atom, X, Y, Z]
+     - array of size x, each separate set of numbers is a list of atom indexes that constitute 1 plane (I want to check that the total number is equal to the tot_num of carbon atoms)
+     - (opt) lattice vectors (this would be to see if a sampled position is perhaps out of the unit cell) (maybe this shouldn't be optional tbh...)
+What code does:
+    - Gives 2x sampled positions above and below each atom in the plane, where x is equal to the number of atoms in the array size list
+
+
+09-30-2025
+SVD gives equations of planes above and below our target plane (Funct.)
+We take that do orthogonal projection on each atom coordinate, saving it into its own .csv file
+
+(Worry about correct retrieval and
+
+Cycle:
+- Take set of atoms
+- Do SVD
+- Save equations of planes (best-fit, x-above, y-below)
+- For each atom do orthogonal projection onto x-above & y-below
+- save OP positions to csv
+
+------
+I have the planes (best-fit, x-above, y-below) and the coordinate positions of the atoms. Now I need to take the atom coordinates, apply orthogonal projection (for both above and below), save that position in a csv
