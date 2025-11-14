@@ -1,0 +1,126 @@
+Batch Phonon Displacement Processor
+
+This Python script is designed to automate the process of generating thermally-displaced atomic structures based on phonon eigenvectors.
+It reads a batch of CSV files, each containing the atomic positions and eigenvectors for a specific phonon mode. For each mode, it calculates the temperature-dependent atomic displacements (based on the Bose-Einstein distribution) and generates a new set of atomic structures.
+The script outputs these new structures in multiple formats (VASP, Quantum ESPRESSO, and CSV) and in both Cartesian and fractional coordinates, organizing them into a clean directory structure.
+
+Features
+Batch Processing: Automatically finds and processes all phonon CSVs in a directory that match a specific name pattern.
+Temperature Dependence: Calculates thermal displacements using the Bose-Einstein occupation factor for a given temperature.
+Robust Error Handling: The calculation functions are designed to handle edge cases like T=0 K, zero-frequency (acoustic) modes, and numerical overflow/underflow, preventing crashes during large batch jobs.
+
+Multi-Format Output: Generates output files for:
+VASP (POSCAR format)
+Quantum ESPRESSO (pw.x snippet)
+CSV (coordinate lists)
+
+Dual Coordinate Systems: For each format, the script outputs both Cartesian (Angstrom) and fractional (direct/crystal) coordinates.
+Automated Directory Structure: Creates a clean, organized output folder (master_freq_folder) with subfolders for each frequency, which are then split into VASP, QE, and CSV folders.
+
+Prerequisites
+You must have Python 3 installed with the following libraries:
+numpy
+pandas
+ase (Atomic Simulation Environment)
+
+How to Use
+Prepare Your Input CSVs
+The script is designed to read CSV files with a specific naming convention:
+[frequency]_cm-1_posvec+eigvec.csv
+
+For example: 90.176_cm-1_posvec+eigvec.csv
+
+The script expects these CSVs to have the following columns, in order:
+X, Y, Z, Eigenvectors_(dx), Eigenvectors_(dy), Eigenvectors_(dz)
+
+The atoms in the CSV must be in a consistent order (e.g., all Carbon atoms first, then all Hydrogen atoms). This order MUST match the order you define in the "USER SETTINGS" section of the script.
+
+Configure the Script
+Open the phonon_processor.py file and edit the "USER SETTINGS" block inside the main() function:
+
+------------------------------------------------------------------
+
+USER SETTINGS (!!! EDIT THIS SECTION !!!)
+
+------------------------------------------------------------------
+
+--- 1. Define atomic properties (MUST match order in CSVs) ---
+
+ATOM_SYMBOLS = ['C', 'H']   # The chemical symbols in order
+ATOM_COUNTS = [44, 28]      # The count for each symbol
+ATOM_MASSES_KG = [          # The mass in kg for each symbol
+1.9926468e-26,          # Mass of Carbon in kg
+1.6735575e-27           # Mass of Hydrogen in kg
+]
+
+--- 2. Define calculation parameters ---
+
+TEMPERATURE_K = 300           # Target temperature in Kelvin
+DISPLACEMENT_PERC = 0.9       # Percentage (decimal) of displacement to apply
+
+--- 3. Define file paths and structure ---
+
+Point this to your CSV files using a glob pattern
+INPUT_FILE_PATTERN = "*_cm-1_posvec+eigvec.csv"
+MASTER_OUTPUT_FOLDER = "master_freq_folder"
+
+Your 3x3 cell lattice vectors in Angstroms
+CELL_VECTORS = [
+[6.266..., 0.0, 0.0],
+[0.720..., 7.741..., 0.0],
+[0.587..., 3.358..., 14.124...]
+]
+
+------------------------------------------------------------------
+
+END OF USER SETTINGS
+
+------------------------------------------------------------------
+
+Run the Script:
+Place the phonon_processor.py script in a directory with your input CSV files (or point the INPUT_FILE_PATTERN to their location). Then, run the script from your terminal:
+
+python phonon_processor.py
+
+The script will print its progress to the console, and you will find a new master_freq_folder in your directory.
+
+Output Structure
+
+The script will generate the following directory structure:
+
+master_freq_folder/
+└── 90.176/                  <-- Folder for the frequency 90.176 cm-1
+├── CSV/
+│   ├── 90.176_mod_90perc_cartesian_coords.csv
+│   ├── 90.176_mod_90perc_detailed_log.csv
+│   └── 90.176_mod_90perc_fractional_coords.csv
+├── QE/
+│   ├── 90.176_mod_90perc.qe_cart
+│   └── 90.176_mod_90perc.qe_frac
+└── VASP/
+├── 90.176_mod_90perc.vasp_cart
+└── 90.176_mod_90perc.vasp_frac
+└── 102.450/                 <-- Folder for the next frequency
+├── CSV/
+...
+
+Technical Note: Robust bose_einstein_occupation Function
+The function bose_einstein_occupation has been specifically modified to be "bulletproof" for batch processing. This is crucial because a simple implementation can easily fail with mathematical errors when processing a wide range of frequencies.
+
+The robust function includes checks for several edge cases:
+
+Zero Temperature (T = 0 K):
+Problem: The original formula has T in the denominator, causing a ZeroDivisionError.
+Fix: An explicit check if temperature_k == 0: return 0.0 is added at the beginning, which is the correct physical limit.
+
+Zero Frequency (freq_hz = 0):
+Problem: Acoustic modes at the Gamma point have zero frequency. This leads to exp(0) = 1, and the final calculation (1 - 1)**-1 becomes a ZeroDivisionError.
+Fix: The code checks if exp1 == 1.0: and then if ang_freq == 0: return 0.0.
+
+Low-Frequency Numerical Instability:
+Problem: For very low frequencies, the exponent (ħω / kT) is tiny. np.exp() may be numerically rounded to 1.0, again causing a ZeroDivisionError.
+Fix: If exp1 == 1.0 but the frequency is not zero, the script switches to the high-temperature/low-frequency classical approximation n ≈ kT / ħω. This is mathematically stable and provides the correct limit.
+
+High-Frequency Numerical Overflow:
+Problem: For very high frequencies, the exponent (ħω / kT) becomes a very large number. np.exp() on this large number will cause an OverflowError.
+Fix: The code checks if exp_arg > 700: (since np.exp(700) is already astronomically large). In this case, the occupation is effectively zero, so the function simply returns 0.0 and avoids the crash.

@@ -1,0 +1,5 @@
+Pipeline Pt.1
+
+Here you put your OUTCAR from your FREQ calculation.
+- Run OUTCAR.txt_to_csv
+- save in output folder
