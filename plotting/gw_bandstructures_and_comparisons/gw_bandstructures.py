@@ -44,12 +44,12 @@ plot_lda = False  # Set to True to plot LDA lines (dotted)
 emin, emax = 2, 5.5
 
 # --- OUTPUT ---
-output_filename = "band_comparison_final.png"
+output_filename = "./FILE_NAME"
 
 # --- STYLING ---
-band_linewidth = 1.0  # Main band lines
+band_linewidth = 0.5  # Main band lines
 helper_linewidth = 0.5  # Grid/Fermi lines
-lda_alpha = 0.7  # Transparency of LDA lines
+lda_alpha = 1  # Transparency of LDA lines
 
 # K-Point Path (Indices must match your file's k-grid)
 k_special_index = np.array([0, 30, 60, 90, 120, 150, 180, 210])
