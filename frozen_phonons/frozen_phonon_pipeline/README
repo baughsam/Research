@@ -3,13 +3,13 @@ Pipeline
 I want this to be a straight forward way to get the frozen phonons for the penacene system.
 
 1. Convert frequency outcar from VASP to .csv files (VASP_FREQ_OUTCAR_to_csv)
-2. ld
+2. (csv_to_inputs)
     - Iterate through each .csv and do phonon displacement based on ZG code.
-    - Folder Format
+    - Folder Layout
         -zg_modified
             -XX_freq
                 - SCF
                 - VASP
                 - .txt
 
-        - Each has a fractional coordinate version and a cartesian coordinate (angstrom) version
+    - Each has a fractional coordinate version and a cartesian coordinate (angstrom) version
