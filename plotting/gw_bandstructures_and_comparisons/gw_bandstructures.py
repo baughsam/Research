@@ -21,7 +21,7 @@ datasets = [
     {
         "label": "100% T-Dep (91cm-1)",
         "file": f"{src_dir}bandstructure_100_tdep.dat",
-        "color": "red"
+        "color": "blue"
     },
 
     #Example: Easily adding mother systems to compare with
@@ -196,7 +196,8 @@ ax.set_ylim(emin, emax)
 ax.tick_params(direction='in', length=6, width=1.5, top=True, right=True)
 
 # Legend placement (Upper Right, transparent box)
-ax.legend(loc='upper right', frameon=False, fontsize='x-small', ncol=1)
+ax.legend(loc='lower center', bbox_to_anchor=(0.5, 1.02),
+          ncol=len(datasets), frameon=False, fontsize='xx-small')
 
 plt.tight_layout()
 plt.savefig(output_filename, dpi=300)
