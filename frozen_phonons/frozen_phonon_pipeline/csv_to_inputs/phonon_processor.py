@@ -156,6 +156,7 @@ def main():
     # USER SETTINGS (!!! EDIT THIS SECTION !!!)
     # ------------------------------------------------------------------
 
+    SYSTEM_NAME = "deut-pent"
     ATOM_SYMBOLS = ['C', 'H']
     ATOM_COUNTS = [44, 28]
     ATOM_MASSES_KG = [
@@ -163,16 +164,16 @@ def main():
         1.6735575e-27  # Mass of Hydrogen in kg
     ]
     TEMPERATURE_K = 300
-    DISPLACEMENT_PERC = 1
+    DISPLACEMENT_PERC = 1 #Ex: 0.3 ~ 30%
 
     # Point this to your CSV files.
     # For example, if they are in a subfolder 'my_csvs':
     # INPUT_FILE_PATTERN = "my_csvs/*_cm-1_posvec+eigvec.csv"
     # If they are in the *same* folder as the script:
     # INPUT_FILE_PATTERN = "*_cm-1_posvec+eigvec.csv"
-    INPUT_FILE_PATTERN = "../VASP_FREQ_OUTCAR_to_csv/freq_csv/*_cm-1_posvec+eigvec.csv"
+    INPUT_FILE_PATTERN = f"../VASP_FREQ_OUTCAR_to_csv/freq_csv_{SYSTEM_NAME}/*_cm-1_posvec+eigvec.csv"
 
-    MASTER_OUTPUT_FOLDER = "master_freq_folder"
+    MASTER_OUTPUT_FOLDER = f"master_freq_folder_{SYSTEM_NAME}"
 
     CELL_VECTORS = [
         [6.2660000000000000, 0.0000000000000000, 0.0000000000000000],
