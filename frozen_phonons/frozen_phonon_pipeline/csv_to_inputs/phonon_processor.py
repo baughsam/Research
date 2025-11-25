@@ -66,7 +66,7 @@ def write_qe_snippet(filename, atoms, coordinate_type='cartesian'):
         f.write("CELL_PARAMETERS (angstrom)\n")
         cell = atoms.get_cell()
         for i in range(3):
-            f.write(f"  {cell[i][0]:16.9f}  {cell[i][1]:16.9f}  {cell[i][2]:16.9f}\n")
+            f.write(f"  {cell[i][0]:16.16f}  {cell[i][1]:16.16f}  {cell[i][2]:16.16f}\n")
 
         f.write("\n")
 
@@ -82,7 +82,7 @@ def write_qe_snippet(filename, atoms, coordinate_type='cartesian'):
             positions = atoms.get_scaled_positions()
 
         for i in range(nat):
-            f.write(f"  {symbols[i]:<3}  {positions[i][0]:16.9f}  {positions[i][1]:16.9f}  {positions[i][2]:16.9f}\n")
+            f.write(f"  {symbols[i]:<3}  {positions[i][0]:16.16f}  {positions[i][1]:16.16f}  {positions[i][2]:16.16f}\n")
 
 
 def process_phonon_file(
