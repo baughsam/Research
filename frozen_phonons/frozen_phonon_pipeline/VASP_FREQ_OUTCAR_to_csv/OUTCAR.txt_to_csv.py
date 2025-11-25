@@ -5,10 +5,10 @@ import re
 import pandas as pd
 from pathlib import Path
 
-
-outcar = open("OUTCAR.txt", "r")
-nat = 72 #number of atoms in pentacene
-output_dir = "freq_csv"
+system_name = "deut-pent"
+outcar = open(f"OUTCAR_{system_name}", "r")
+nat = 72 #number of atoms in system
+output_dir = f"freq_csv_{system_name}"
 
 
 # This line creates the directory and ignores errors if it already exists
