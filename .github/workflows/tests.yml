@@ -27,7 +27,7 @@ jobs:
       run: |
         python -m pip install --upgrade pip
         pip install pytest
-        pip install -e .  # Now '.' refers to /quant_numerov/
+        pip install -e .  # Now '.' refers to /1-research_repo/
 
     - name: Run Pytest
       run: |
