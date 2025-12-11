@@ -1,4 +1,5 @@
 # test_shape.py
+import pytest
 import numpy as np
 from ct_character.Shape import EllipticalCylinder
 
