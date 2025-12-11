@@ -13,7 +13,7 @@ jobs:
     # --- NEW: Tell the robot where the specific project is ---
     defaults:
       run:
-        working-directory: ./quant_numerov
+        working-directory: ./1-research_repo
 
     steps:
     - uses: actions/checkout@v4
