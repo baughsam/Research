@@ -17,8 +17,8 @@ class ExcitonData():
 
     # Final Results
     ct_ratio: Optional[float] = None          # INVOLUMEFRACTION
-    dipole: Optional[np.ndarray] = None       # Dipole #[x, y, z]
-    quadrupole: Optional[np.ndarray] = None   # Quadrupole # 3x3 Matrix
+    dipole_moment: Optional[np.ndarray] = None       # Dipole #[x, y, z]
+    quadrupole_moment: Optional[np.ndarray] = None   # Quadrupole # 3x3 Matrix
 
     # Plotting Parameters
     rdf_distance = Optional[np.ndarray] = None   # X-axis
