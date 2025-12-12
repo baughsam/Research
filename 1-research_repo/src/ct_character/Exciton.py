@@ -1,6 +1,28 @@
 import numpy as np
 from dataclasses import dataclass, field
 from ct_character.Shape import Shape
+from typing import Optional
+
+
+@dataclass
+class ExcitonData():
+    #self.variable: type # Variable from fortran code
+    # Raw Data
+    density: np.ndarray # twopartcorr_INPUT
+
+    # Middle Work
+    density_inside_shape: Optional[np.ndarray] = None # twopartcorr_Volume
+    #counter: np.ndarray #Unecessary, we can get this from np.histogram
+    density_distance: Optional[np.ndarray] = None
+
+    # Final Results
+    ct_ratio: Optional[float] = None          # INVOLUMEFRACTION
+    dipole: Optional[np.ndarray] = None       # Dipole #[x, y, z]
+    quadrupole: Optional[np.ndarray] = None   # Quadrupole # 3x3 Matrix
+
+    # Plotting Parameters
+    rdf_distance = Optional[np.ndarray] = None   # X-axis
+    rdf_values = Optional[np.ndarray] = None     # Y-axis
 
 
 
