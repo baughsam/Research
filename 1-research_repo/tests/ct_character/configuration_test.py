@@ -1,9 +1,7 @@
 import numpy as np
 import pytest
-from networkx.generators.lattice import grid_graph
-
-from Exciton import Configuration
-from Shape import EllipticalCylinder
+from ct_character.Exciton import Configuration
+from ct_character.Shape import EllipticalCylinder
 
 # Test Setup
 @pytest.fixture
@@ -12,7 +10,7 @@ def dummy_shape():
     return EllipticalCylinder(axis_a=10, axis_b=10, length_c=10)
 
 @pytest.fixture
-def orthogal_config(dummy_shape):
+def orthogonal_config(dummy_shape):
     """Creates a 10x10x10 cubic system."""
     lattice = np.array([[10.0, 0.0,0.0],
                         [0.0, 10.0, 0.0],
@@ -34,4 +32,4 @@ def orthogal_config(dummy_shape):
 def test_volume_calculation(orthogonal_config):
     """Test 1: Correst volume size calculation."""
     # 10 * 10 * 10 = 1000.0
-    assert np.isclose(orthogonal_config.volume(), 1000.0)
+    assert np.isclose(orthogonal_config.total_volume, 1000.0)

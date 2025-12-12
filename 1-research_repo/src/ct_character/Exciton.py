@@ -1,6 +1,6 @@
 import numpy as np
 from dataclasses import dataclass, field
-import Shape
+from ct_character.Shape import Shape
 
 
 
@@ -11,7 +11,7 @@ class Configuration():
     grid_shape: tuple[int, int, int]    # (Nx, Ny, Nz) e.g. (300,300,50)
 
     # Physics Model
-    shape: Shape.Shape          # Shape Object from Shape.py
+    shape: Shape          # Shape Object from Shape.py
 
     # Atomic Structure
     atom_positions: np.ndarray # (N_atoms, 3)
@@ -66,5 +66,5 @@ class Configuration():
             raise ValueError(f"Mismatch: {len(self.atom_positions)} positions but {len(self.atom_types)} types.")
 
         # CHECK 4: Data Types (Optional but safe)
-        if not isinstance(self.shape, Shape.Shape):
+        if not isinstance(self.shape, Shape):
             raise TypeError("The 'shape' field must be a valid Shape object (Cylinder/Ellipsoid).")
