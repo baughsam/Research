@@ -21,8 +21,8 @@ class ExcitonData():
     quadrupole_moment: Optional[np.ndarray] = None   # Quadrupole # 3x3 Matrix
 
     # Plotting Parameters
-    rdf_distance = Optional[np.ndarray] = None   # X-axis
-    rdf_values = Optional[np.ndarray] = None     # Y-axis
+    rdf_distance: Optional[np.ndarray] = None   # X-axis
+    rdf_values: Optional[np.ndarray] = None     # Y-axis
 
 
 
