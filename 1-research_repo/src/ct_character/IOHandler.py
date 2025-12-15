@@ -1,7 +1,7 @@
 import numpy as np
 import Exciton
 from ct_character.Exciton import Configuration, ExcitonData
-from ct_character.Shape import Shape
+from ct_character.Shape import EllipticalCylinder
 from pathlib import Path
 import os
 
@@ -82,3 +82,17 @@ class IOHandler:
 
                     print(f"Saving binary cache to: {cache_path}")
                     np.save(cache_path, density)
+        # --- Build Objects --- #
+        specific_shape = EllipticalCylinder(**shape_parms)
+        config = Configuration(
+            lattice_vectors=lattice_vectors,
+            origin=origin,
+            grid_shape=tuple(grid_shape),
+            shape= specific_shape,
+            atom_types=atom_types,
+            atom_positions=atom_positions,
+        )
+
+        data = ExcitonData(density=density)
+
+        return config, data
