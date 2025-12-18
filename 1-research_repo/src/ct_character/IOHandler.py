@@ -96,3 +96,49 @@ class IOHandler:
         data = ExcitonData(density=density)
 
         return config, data
+
+    @staticmethod
+    def write_report(filename: str, config: Exciton.Configuration, data: Exciton.ExcitonData):
+        """
+        Writes comprehensive summary file (_OUT.txt in .f90)
+        """
+
+        print(f"Writing summary to: {filename}...")
+
+        with open(filename, 'w') as f:
+            # --- HEADER ---
+            f.write("*************************************************\n")
+            f.write("           Exciton Analysis Summary              \n")
+            f.write("*************************************************\n\n")
+
+            # --- System Parameters --- *
+            nx, ny, nz = config.grid_shape
+            f.write(f"  Grid dimensions:       {nx} x {ny} x {nz}\n")
+            f.write(f"  Cell volume:           {config.total_volume:.6f} Bohr^3\n")
+            f.write(f"  Voxel volume (dV):     {config.dv:.6e} Bohr^3\n")
+            f.write(f"  Shape Model:           {type(config.shape).__name__}\n\n")
+
+            # --- CT & DIPOLE RESULTS --- #
+            f.write("Key Results:\n")
+            if data.ct_ratio is not None:
+                f.write(f" Charge Transfer Ratio: {data.ct_ratio:.6f}\n")
+
+            if data.dipole_moment is not None:
+                # Calculate magnitude of dipole
+                dipole_mag = np.linalg.norm(data.dipole_moment)
+                f.write(f" Dipole Moment (Vector): {data.dipole_moment}\n")
+                f.write(f" Dipole Magnitude:       {dipole_mag:.6f} Bohr\n\n")
+
+            # -- MOMENTS --- #
+            if data.avg_r is not None:
+                f.write("First Moment Metrics (Average Distance):\n")
+                f.write(f"  <|r|> (Mean Radius):    {data.avg_r:.6f} Bohr\n")
+                f.write(f"  <|a|> (Proj. on A):     {data.avg_a:.6f} Bohr\n")
+                f.write(f"  <|b|> (Proj. on B):     {data.avg_b:.6f} Bohr\n")
+                f.write(f"  <|c|> (Proj. on C):     {data.avg_c:.6f} Bohr\n\n")
+
+            # --- ANISOTROPY --- #
+            if data.avg_a is not None and data.avg_b is not None:
+                ratio_ab = data.avg_a / data.avg_b if data.avg_a > 0 else 0
+                f.write("Anisotropy:\n")
+                f.write(f"  Ratio <|a|>/<|b|>:      {ratio_ab:.4f}\n")
