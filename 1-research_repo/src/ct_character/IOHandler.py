@@ -1,5 +1,4 @@
 import numpy as np
-import Exciton
 from ct_character.Exciton import Configuration, ExcitonData
 from ct_character.Shape import EllipticalCylinder
 from pathlib import Path
@@ -9,7 +8,7 @@ import os
 class IOHandler:
 
     @staticmethod
-    def read_cube(filename: str, shape_parms: dict) -> tuple[Exciton.Configuration, Exciton.ExcitonData]:
+    def read_cube(filename: str, shape_params: dict) -> tuple[Configuration, ExcitonData]:
         """
         Extracts Configuration and ExcitonData from a .cube file
         """
@@ -17,7 +16,7 @@ class IOHandler:
         print(f"Reading metadata from: {file_path}...")
 
         # Metadata
-        with open(file_path, "r") as f:
+        with (open(file_path, "r") as f):
             # Skip Comments
             f.readline(); f.readline()
 
@@ -62,29 +61,37 @@ class IOHandler:
 
             cache_path = file_path.with_name(f"{file_path.stem}_density.npy")
 
+            # Initialize Density
+            density = None
+
             if cache_path.exists():
                 print(f"Found binary cache. Loading fast from: {cache_path}")
-                # mmap_mod='r' allows us to read > 1GB files without instantly filling RAM
-                density = np.load(cache_path, mmap_mode='r')
+                try:
+                    # mmap_mod='r' allows us to read > 1GB files without instantly filling RAM
+                    loaded_density = np.load(cache_path, mmap_mode='r')
 
-                # Sanity Check: Does the cached file match the header we just read?
-                if density.shape != tuple(grid_shape):
-                    print(f"Warning: Cache shape mismatch. Regenerating density...")
-                    density = None
-                else:
-                    print("No cache found.")
-                    density = None
+                    # Sanity Check: Does the cached file match the header we just read?
+                    if density.shape != tuple(grid_shape):
+                        print(f"Warning: Cache shape mismatch. Regenerating density...")
+                        density = None
+                    else:
+                        density = loaded_density
 
-                if density is None:
-                    print("Parsing text volumatric data (Slow)...")
+                except Exception as e:
+                    print(f"Warning: Failed ot load cache: {e}")
+            else:
+                print("No cache found")
 
-                    raw_data = np.fromstring(f.read(), sep=' ')
-                    density = raw_data.reshape(tuple(grid_shape))
+            if density is None:
+                print("Parsing text volumatric data (Slow)...")
 
-                    print(f"Saving binary cache to: {cache_path}")
-                    np.save(cache_path, density)
+                raw_data = np.fromstring(f.read(), sep=' ')
+                density = raw_data.reshape(tuple(grid_shape))
+
+                print(f"Saving binary cache to: {cache_path}")
+                np.save(cache_path, density)
         # --- Build Objects --- #
-        specific_shape = EllipticalCylinder(**shape_parms)
+        specific_shape = EllipticalCylinder(**shape_params)
         config = Configuration(
             lattice_vectors=lattice_vectors,
             origin=origin,
@@ -99,7 +106,7 @@ class IOHandler:
         return config, data
 
     @staticmethod
-    def write_report(filename: str, config: Exciton.Configuration, data: Exciton.ExcitonData):
+    def write_report(filename: str, config: Configuration, data: ExcitonData):
         """
         Writes comprehensive summary file (_OUT.txt in .f90)
         """
