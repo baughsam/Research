@@ -142,3 +142,18 @@ class IOHandler:
                 ratio_ab = data.avg_a / data.avg_b if data.avg_a > 0 else 0
                 f.write("Anisotropy:\n")
                 f.write(f"  Ratio <|a|>/<|b|>:      {ratio_ab:.4f}\n")
+
+    @staticmethod
+    def write_json_stats(filename, config, data):
+        """
+        Writes JSON file w/ physical parameters for plotting purposes
+        """
+        stats = {
+            "ct_ratio": data.ct_ratio,
+            "dipole_magnitude": np.linalg.norm(data.dipole_moment),
+            "dipole_vector": data.dipole_moment.tolist(),  # JSON can't handle numpy arrays
+            "avg_radius": data.avg_r,
+            "anisotropy_ab": data.avg_a / data.avg_b
+        }
+        with open(filename.replace(".txt", ".json"), 'w') as f:
+            json.dump(stats, f, indent=4)
