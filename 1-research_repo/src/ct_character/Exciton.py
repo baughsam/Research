@@ -24,6 +24,12 @@ class ExcitonData():
     rdf_distance: Optional[np.ndarray] = None   # X-axis
     rdf_values: Optional[np.ndarray] = None     # Y-axis
 
+    # Average distance values (to replicate _OUT.txt in .f90 file)
+    avg_r: Optional[float] = None  # <|r|>
+    avg_a: Optional[float] = None  # <|a|>
+    avg_b: Optional[float] = None  # <|b|>
+    avg_c: Optional[float] = None  # <|c|>
+
 
 
 @dataclass(frozen=True)
