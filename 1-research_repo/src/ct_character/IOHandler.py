@@ -3,6 +3,7 @@ import Exciton
 from ct_character.Exciton import Configuration, ExcitonData
 from ct_character.Shape import EllipticalCylinder
 from pathlib import Path
+import json
 import os
 
 class IOHandler:
