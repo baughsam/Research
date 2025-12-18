@@ -59,6 +59,7 @@ def test_read_cube_good_path():
 
 def test_broken_file_structure():
     """
+    Test 2:
     Scenario: The file ends abruptly (header exists, data missing).
     Goal: Verify it crashes gracefully with a specific error.
     """
@@ -73,3 +74,36 @@ def test_broken_file_structure():
             # We expect an IndexError or ValueError when splitting lines
             with pytest.raises((IndexError, ValueError)):
                 IOHandler.read_cube("broken.cube", SHAPE_PARAMS)
+
+def test_write_report():
+    """
+    Test 3:
+    Scenario: Writing final output
+    Goal: Ensure correct values are written
+    """
+
+    # Setup object
+    config = MagicMock()
+    config.grid_shape = (10, 10, 10)
+    config.total_volume = 1000.0
+    config.dv = 1.0
+    config.shape = EllipticalCylinder(1,1,1)
+
+    data = ExcitonData(density = np.zeros((1,1,1)))
+    data.ct_ratio = 0.55
+    data.dipole_moment = np.array([0.0, 0.0, 1.0])
+
+    # Mock opening a file for writing
+    m_open = mock_open()
+    with patch("builtins.open", m_open):
+        IOHandler.write_report("output.txt",config, data)
+
+    # Checking what was written. We add handle to m_open() file to do so
+    handle = m_open()
+
+    #combine all write calls into one string
+    written_content = "".join(call.args[0] for call in handle.write.call_args_list)
+
+    # Verify key information exists in the output (CT Ratio & Dipole)
+    assert " Charge Transfer Ratio: 0.550000" in written_content
+    assert " Dipole Magnitude:       1.000000" in written_content
