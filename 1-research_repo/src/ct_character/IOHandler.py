@@ -129,7 +129,7 @@ class IOHandler:
             # --- CT & DIPOLE RESULTS --- #
             f.write("Key Results:\n")
             if data.ct_ratio is not None:
-                f.write(f" Charge Transfer Ratio: {data.ct_ratio:.6f}\n")
+                f.write(f" Charge Transfer Ratio:  {data.ct_ratio:.6f}\n")
 
             if data.dipole_moment is not None:
                 # Calculate magnitude of dipole
