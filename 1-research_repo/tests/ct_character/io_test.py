@@ -105,7 +105,7 @@ def test_write_report():
     written_content = "".join(call.args[0] for call in handle.write.call_args_list)
 
     # Verify key information exists in the output (CT Ratio & Dipole)
-    assert " Charge Transfer Ratio: 0.550000" in written_content
+    assert " Charge Transfer Ratio:  0.550000" in written_content
     assert " Dipole Magnitude:       1.000000" in written_content
 
 def test_binary_cache_miss_creates_save():
