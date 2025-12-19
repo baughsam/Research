@@ -72,7 +72,8 @@ class Configuration():
         step_b = b/ny
         step_c = c/nz
 
-        return np.array([step_a, step_b, step_c])
+        # Transpose matrix so vectors -> columns
+        return np.array([step_a, step_b, step_c]).T
 
     # Checks for bad data:
     def __post_init__(self):
