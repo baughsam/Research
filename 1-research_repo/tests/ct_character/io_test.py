@@ -107,3 +107,22 @@ def test_write_report():
     # Verify key information exists in the output (CT Ratio & Dipole)
     assert " Charge Transfer Ratio: 0.550000" in written_content
     assert " Dipole Magnitude:       1.000000" in written_content
+
+def test_binary_cache_miss_creates_save():
+    """
+    Test 4:
+    Scenario: No .npy file exists
+    Goal: Ensure it parses text AND saves a new .npy file for next time.
+    """
+
+    with patch("builtins.open", mock_open(read_data=FAKE_CUBE_CONTENT)):
+        with patch("pathlib.Path.exists", return_value=False): # No cache file
+            with patch("numpy.save") as mock_save:
+
+                IOHandler.read_cube("dummy.cube", SHAPE_PARAMS)
+
+                # Check: Did it try to save the cache?
+                mock_save.assert_called_once()
+                # Verify arguments: (filename, array)
+                args, _ = mock_save.call_args
+                assert str(args[0]) == "dummy_density.npy"
