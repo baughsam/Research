@@ -29,6 +29,9 @@ class Solver:
         # Apply boolean mask to density
         self._apply_mask_to_density(mask)
 
+        # Calculate CT Ratio
+        self.data.ct_ratio = self._calculate_ct_ratio()
+
 
     def _generate_coordinates(self):
         """Generates 3D Cartesian coordinates (X, Y, Z) and Radius (R)."""
@@ -71,3 +74,14 @@ class Solver:
         Filters the density grid using the mask.
         """
         self.data.density_inside_shape = np.where(mask, self.data.grid_data, 0.0)
+
+    def _calculate_ct_ratio(self):
+        """
+        Calculates fraction of charge inside Shape volume
+        """
+        total_density = np.sum(self.data.grid_data)
+        masked_sum = np.sum(self.data.density_inside_shape)
+
+        if total_density > 1e-12:
+            return masked_sum / total_density
+        return 0.0
