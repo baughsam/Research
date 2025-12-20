@@ -35,6 +35,12 @@ class Solver:
         # Calculate Radial Distribution (RDF) & Average Radius
         self._calculate_rdf_and_avg_radius(R)
 
+        # Calculate Multipoles (Dipole & Quadrupole)
+        self._calculate_multipoles(X, Y, Z)
+
+        # Calculate 1D & 2D Projections (Averaging)
+        self._calculate_projections()
+
 
 
     def _generate_coordinates(self):
@@ -104,7 +110,7 @@ class Solver:
         hist_counts, _ = np.histogram(R, bins=bins)
 
         #Bin centers
-        # Can't ploat data point at a "boundary". we have to plot it at the center
+        # Can't plot data point at a "boundary". we have to plot it at the center
         self.data.rdf_distance = (bin_edges[:-1] + bin_edges[1:]) / 2.0
 
         # Safe division for avg density at r
@@ -124,3 +130,52 @@ class Solver:
         # Average Radius of Electron from Center <r>
         # Sum (Probability of being at distance r * Distance)
         self.data.avg_r = np.sum(self.data.rdf_values * self.data.rdf_distance)
+
+    def _calculate_multipoles(self, X, Y, Z):
+        """
+        Calculates Dipole and Quadrupole moments using masked density.
+        """
+        rho = self.data.density_inside_shape
+        total_dens = np.sum(self.data.grid_data)
+        norm = 1.0 / total_dens if total_dens > 1e-12 else 0.0
+
+        # Normalized masked density
+        rho_norm = rho * norm
+
+        # Dipole
+        self.data.dipole_moment = np.array([
+            np.sum(rho_norm * X),
+            np.sum(rho_norm * Y),
+            np.sum(rho_norm * Z)
+        ])
+
+        # Quadrupole (Symmetric Tensor)
+        R2 = X**2 + Y**2 + Z**2
+
+        qxx = np.sum(rho_norm * (3*X**2 - R2))
+        qyy = np.sum(rho_norm * (3*Y**2 - R2))
+        qzz = np.sum(rho_norm * (3*Z**2 - R2))
+        qxy = np.sum(rho_norm * (3*X*Y))
+        qxz = np.sum(rho_norm * (3*X*Z))
+        qyz = np.sum(rho_norm * (3*Y*Z))
+
+        self.data.quadropole_moment = np.array([
+            [qxx, qxy, qxz],
+            [qxy, qyy, qyz],
+            [qxz, qyz, qzz]
+        ])
+
+    def _calculate_projections(self):
+        """
+        Calculate 1D planar averages.
+        """
+        rho = self.data.density_inside_shape
+
+        # Summing over (y,z) leaves x (a-axis)
+        self.data.avg_a = np.sum(rho, axis=(1,2))
+
+        #Summing over (x,z) leaves y (b-axis)
+        self.data.avg_b = np.sum(rho, axis=(0,2))
+
+        # Summing over (x,y) leaves z (c-axis)
+        self.data.avg_c = np.sum(rho, axis=(0,1))
