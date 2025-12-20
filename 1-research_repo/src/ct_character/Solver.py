@@ -85,3 +85,38 @@ class Solver:
         if total_density > 1e-12:
             return masked_sum / total_density
         return 0.0
+
+    def _calculate_rdf_and_avg_radius(self, R):
+        """
+        Calculates Radial Distribution Function and <r>
+        """
+        # Binning
+        nb_bins = min(300, int(np.max(self.data.grid_data.shape)))
+        bins = np.linspace(0, np.max(R), nb_bins +1)
+
+        # Weighted histogram (sum of density in shell)
+        hist_rho, bin_edges = np.histogram(R, bins=bins, weights=self.data.grid_data)
+        # Count histogram (volume of shell in voxels)
+        hist_counts, _ = np.histogram(R, bins=bins)
+
+        #Bin centers
+        # Can't ploat data point at a "boundary". we have to plot it at the center
+        self.data.rdf_distance = (bin_edges[:-1] + bin_edges[1:]) / 2.0
+
+        # Safe division for avg density at r
+        with np.errstate(divide='ignore', invalid='ignore'): # Empty bins won't crash Python (division by zero)
+            avg_rho = np.nan_to_num(hist_rho / hist_counts) #Converts NaN to zero
+
+        # Raw (non-normalized) density profile
+        self.data.density_distance = avg_rho # Raw profile
+
+        #Normalized RDF (CDF = 1)
+        cdf = np.cumsum(avg_rho)
+        if cdf[-1] > 0:
+            self.data.rdf_values = avg_rho / cdf[-1]
+        else:
+            self.data.rdf_values = avg_rho
+
+        # Average Radius of Electron from Center <r>
+        # Sum (Probability of being at distance r * Distance)
+        self.data.avg_r = np.sum(self.data.rdf_values * self.data.rdf_distance)
