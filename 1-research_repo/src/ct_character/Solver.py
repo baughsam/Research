@@ -170,12 +170,17 @@ class Solver:
         Calculate 1D planar averages.
         """
         rho = self.data.density_inside_shape
+        total_dens = np.sum(self.data.grid_data)
+        norm = 1.0 / total_dens if total_dens > 1e-12 else 0.0
+
+        # Normalized masked density
+        rho_norm = rho * norm
 
         # Summing over (y,z) leaves x (a-axis)
-        self.data.avg_a = np.sum(rho, axis=(1,2))
+        self.data.avg_a = np.sum(rho_norm, axis=(1,2))
 
         #Summing over (x,z) leaves y (b-axis)
-        self.data.avg_b = np.sum(rho, axis=(0,2))
+        self.data.avg_b = np.sum(rho_norm, axis=(0,2))
 
         # Summing over (x,y) leaves z (c-axis)
-        self.data.avg_c = np.sum(rho, axis=(0,1))
+        self.data.avg_c = np.sum(rho_norm, axis=(0,1))
