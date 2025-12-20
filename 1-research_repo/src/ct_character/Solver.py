@@ -23,8 +23,11 @@ class Solver:
         # Generate the coordinate grids
         X, Y, Z, R = self._generate_coordinates()
 
-        # Create geometric mask
+        # Create boolean (geometric) mask
         mask = self._create_volume_mask(X, Y, Z)
+
+        # Apply boolean mask to density
+        self._apply_mask_to_density(mask)
 
 
     def _generate_coordinates(self):
@@ -62,3 +65,9 @@ class Solver:
         mask = shape_obj.is_inside(X, Y, Z)
 
         return mask
+
+    def _apply_mask_to_density(self, mask):
+        """
+        Filters the density grid using the mask.
+        """
+        self.data.density_inside_shape = np.where(mask, self.data.grid_data, 0.0)
