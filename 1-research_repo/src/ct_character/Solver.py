@@ -23,6 +23,10 @@ class Solver:
         # Generate the coordinate grids
         X, Y, Z, R = self._generate_coordinates()
 
+        # Create geometric mask
+        mask = self._create_volume_mask(X, Y, Z)
+
+
     def _generate_coordinates(self):
         """Generates 3D Cartesian coordinates (X, Y, Z) and Radius (R)."""
         nx, ny, nz = self.data.grid_data.shape
@@ -33,7 +37,7 @@ class Solver:
         dj = j - (ny / 2.0)
         dk = k - (nz / 2.0)
 
-        #Stack for matrix multiplicaiton
+        #Stack for matrix multiplication
         grid_coords = np.stack([di, dj, dk], axis=0)
 
         # Transform Grid -> Cartesian using Lattice Matrix
@@ -44,3 +48,17 @@ class Solver:
         R = np.sqrt(X**2 + Y**2 + Z**2)
 
         return X, Y, Z, R
+
+    def _create_volume_mask(self, X, Y, Z):
+        """
+        Asks the Shape object to create boolean mask.
+        """
+
+        # Shape object from Configuration
+        shape_obj = self.config.shape
+
+        # Ask the shape: "Which of these x amount of points are inside?"
+        # Returns an array of (nx, ny, nz) values with either True or False
+        mask = shape_obj.is_inside(X, Y, Z)
+
+        return mask
