@@ -32,6 +32,10 @@ class Solver:
         # Calculate CT Ratio
         self.data.ct_ratio = self._calculate_ct_ratio()
 
+        # Calculate Radial Distribution (RDF) & Average Radius
+        self._calculate_rdf_and_avg_radius(R)
+
+
 
     def _generate_coordinates(self):
         """Generates 3D Cartesian coordinates (X, Y, Z) and Radius (R)."""
