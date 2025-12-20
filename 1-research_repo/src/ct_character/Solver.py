@@ -159,7 +159,7 @@ class Solver:
         qxz = np.sum(rho_norm * (3*X*Z))
         qyz = np.sum(rho_norm * (3*Y*Z))
 
-        self.data.quadropole_moment = np.array([
+        self.data.quadrupole_moment = np.array([
             [qxx, qxy, qxz],
             [qxy, qyy, qyz],
             [qxz, qyz, qzz]
