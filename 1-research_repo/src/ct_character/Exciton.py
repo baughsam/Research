@@ -12,7 +12,6 @@ class ExcitonData():
 
     # Middle Work
     density_inside_shape: Optional[np.ndarray] = None # twopartcorr_Volume
-    #counter: np.ndarray #Unecessary, we can get this from np.histogram
     density_distance: Optional[np.ndarray] = None
 
     # Final Results
