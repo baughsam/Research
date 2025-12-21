@@ -71,7 +71,8 @@ def clean_solver():
 
 def test_generate_coordinates(clean_solver):
     """
-    Test if X, Y, Z, R are generated w/ correct shapes and centering
+    Test 1:
+    Are  X, Y, Z, and R generated w/ correct shapes and centering?
     """
     X, Y, Z, R = clean_solver._generate_coordinates()
     # Check Shape
@@ -87,3 +88,21 @@ def test_generate_coordinates(clean_solver):
     # Check a point away from center
     # Index 6 is 1 step away -> 1.0 Bohr
     assert np.isclose(X[6,5,5], 1.0, atol=1e-9)
+
+def test_apply_mask(clean_solver):
+    """
+    Test 2:
+    Does the mask correctly filter data?
+    """
+    # Set all data to 1.0
+    clean_solver.data.grid_data = np.ones((10,10,10))
+
+    # Create fake mask where only the center point is True
+    fake_mask = np.zeros((10,10,10), dtype=bool)
+    fake_mask[5,5,5] = True
+
+    clean_solver._apply_mask_to_density(fake_mask)
+
+    # Center should be 1.0, everything else should be 0.0
+    assert np.isclose(clean_solver.data.density_inside_shape[5,5,5], 1.0, atol=1e-9)
+    assert np.isclose(clean_solver.data.density_inside_shape[0,0,0], 0.0, atol=1e-9)
