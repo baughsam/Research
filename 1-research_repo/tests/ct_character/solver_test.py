@@ -152,3 +152,25 @@ def test_calculate_multipoles_dipole(clean_solver):
     assert np.isclose(dipole[0], 2.0, atol=1e-6) # X
     assert np.isclose(dipole[1], 0.0, atol=1e-6) # Y
     assert np.isclose(dipole[2], 0.0, atol=1e-6) # Z
+
+def test_calculate_projections(clean_solver):
+    """
+    Test 5 (Math test):
+    Are we summing the axes correctly?
+    """
+    # Set uniform density of 1.0 everywhere
+    clean_solver.data.grid_data = np.ones((10,10,10))
+    # Mask keeps all the density
+    clean_solver.data.density_inside_shape = np.ones((10, 10 , 10))
+
+    clean_solver._calculate_projections()
+
+    # avg_c (Z-axis profile) should be uniform
+    # Since total probability sums to 1.0, and there are 10 slices:
+    # Each slice must hold 0.1
+    expected_value = 0.1
+
+    assert np.isclose(clean_solver.data.avg_c[0], expected_value, atol=1e-6)
+
+    # Sum of the projection should be 1.0
+    assert np.isclose(np.sum(clean_solver.data.avg_c), 1.0, atol=1e-6)
