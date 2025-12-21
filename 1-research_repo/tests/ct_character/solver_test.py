@@ -109,7 +109,7 @@ def test_apply_mask(clean_solver):
 
 def test_calculate_ct_ratio(clean_solver):
     """
-    Test 3:
+    Test 3 (Math test):
     Charge Transfer Ration Calculation
     """
     # Total density = 100.0 (1.0 in 100 spots)
@@ -122,3 +122,33 @@ def test_calculate_ct_ratio(clean_solver):
 
     ratio = clean_solver._calculate_ct_ratio()
     assert np.isclose(ratio, 0.25, atol=1e-6)
+
+def test_calculate_multipoles_dipole(clean_solver):
+    """
+    Test 4 (Physics test):
+    Place a charge at x=2.0. Dipole X should be 2.0
+    """
+    # Setup Grid
+    clean_solver.data.grid_data = np.zeros((10,10,10))
+
+    # Place Charge at Index [7,5,5]
+    # Center is index 5. Index 7 is + 2 steps away in the x direction.
+    # Lattice step is 1.0, thus Position = +2.0 Bohr
+    clean_solver.data.grid_data[7, 5, 5] = 10.0 # Arbitrary magnitude
+
+    # 3. Apply Mask (Allow everything)
+    mask = np.ones((10,10,10), dtype=bool)
+    clean_solver._apply_mask_to_density(mask)
+
+    # Generate Coords needed for multipoles
+    X, Y, Z, R = clean_solver._generate_coordinates()
+
+    # Calculate
+    clean_solver._calculate_multipoles(X, Y, Z)
+
+    # Dipole
+    dipole = clean_solver.data.dipole_moment
+
+    assert np.isclose(dipole[0], 2.0, atol=1e-6) # X
+    assert np.isclose(dipole[1], 0.0, atol=1e-6) # Y
+    assert np.isclose(dipole[2], 0.0, atol=1e-6) # Z
