@@ -174,3 +174,20 @@ def test_calculate_projections(clean_solver):
 
     # Sum of the projection should be 1.0
     assert np.isclose(np.sum(clean_solver.data.avg_c), 1.0, atol=1e-6)
+
+def test_solve_integration(clean_solver):
+    """
+    Test 6:
+    Is solve() working as intended? Is it populating fields?
+    """
+
+    # Run the whole pipeline on empty data
+    clean_solver.solve()
+
+    # Check if certain field are populated
+    assert clean_solver.data.ct_ratio is not None
+    assert clean_solver.data.dipole_moment is not None
+    assert clean_solver.data.avg_a is not None
+
+    # With a zero density grid, CT ratio should be 0.0
+    assert np.isclose(clean_solver.data.ct_ratio, 0.0, atol=1e-6)
