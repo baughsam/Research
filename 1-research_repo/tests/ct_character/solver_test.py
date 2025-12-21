@@ -106,3 +106,19 @@ def test_apply_mask(clean_solver):
     # Center should be 1.0, everything else should be 0.0
     assert np.isclose(clean_solver.data.density_inside_shape[5,5,5], 1.0, atol=1e-9)
     assert np.isclose(clean_solver.data.density_inside_shape[0,0,0], 0.0, atol=1e-9)
+
+def test_calculate_ct_ratio(clean_solver):
+    """
+    Test 3:
+    Charge Transfer Ration Calculation
+    """
+    # Total density = 100.0 (1.0 in 100 spots)
+    clean_solver.data.grid_data = np.zeros((10,10,10))
+    clean_solver.data.grid_data[0:10,0:10,0] = 1.0
+
+    # Inside density = 25.0 (1.0 in 25 spots)
+    clean_solver.data.density_inside_shape = np.zeros((10, 10 , 10))
+    clean_solver.data.density_inside_shape[0:5,0:5,0] = 1.0
+
+    ratio = clean_solver._calculate_ct_ratio()
+    assert np.isclose(ratio, 0.25, atol=1e-6)
