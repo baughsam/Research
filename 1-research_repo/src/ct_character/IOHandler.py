@@ -1,6 +1,7 @@
 import numpy as np
 from ct_character.Exciton import Configuration, ExcitonData
 from ct_character.Shape import EllipticalCylinder
+import ct_character.Shape as ShapeModule
 from pathlib import Path
 import json
 import os
@@ -8,7 +9,7 @@ import os
 class IOHandler:
 
     @staticmethod
-    def read_cube(filename: str, shape_params: dict) -> tuple[Configuration, ExcitonData]:
+    def read_cube(filename: str, shape_params: dict, shape_type: str) -> tuple[Configuration, ExcitonData]:
         """
         Extracts Configuration and ExcitonData from a .cube file
         """
@@ -90,8 +91,21 @@ class IOHandler:
 
                 print(f"Saving binary cache to: {cache_path}")
                 np.save(cache_path, density)
+
         # --- Build Objects --- #
-        specific_shape = EllipticalCylinder(**shape_params)
+        try:
+            # Look for a class in Shape.py that matches the string
+            selected_class = getattr(ShapeModule, shape_type)
+            print(f"using Shape Class: {shape_type}")
+
+        except AttributeError:
+            # If class name doesn't exist
+            print(f"Warning: Shape class '{shape_type}' not found in Shape.py.")
+            print("Defaulting to EllipticalCylinder.")
+            selected_class = EllipticalCylinder
+
+
+        specific_shape = selected_class(**shape_params)
         config = Configuration(
             lattice_vectors=lattice_vectors,
             origin=origin,
