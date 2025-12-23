@@ -37,7 +37,7 @@ def test_read_cube_good_path():
             # We mock np.save to prevent it from actually writing a .npy file
             with patch("numpy.save") as mock_save:
 
-                config, data = IOHandler().read_cube(filename="dummy.cube", shape_params=SHAPE_PARAMS)
+                config, data = IOHandler().read_cube(filename="dummy.cube", shape_params=SHAPE_PARAMS, shape_type="EllipticalCylinder")
 
 
     # Check 1: Grid Dimensions
@@ -73,7 +73,7 @@ def test_broken_file_structure():
         with patch("pathlib.Path.exists", return_value=False):
             # We expect an IndexError or ValueError when splitting lines
             with pytest.raises((IndexError, ValueError)):
-                IOHandler.read_cube("broken.cube", SHAPE_PARAMS)
+                IOHandler.read_cube("broken.cube", SHAPE_PARAMS, shape_type="EllipticalCylinder")
 
 def test_write_report():
     """
@@ -119,7 +119,7 @@ def test_binary_cache_miss_creates_save():
         with patch("pathlib.Path.exists", return_value=False): # No cache file
             with patch("numpy.save") as mock_save:
 
-                IOHandler.read_cube("dummy.cube", SHAPE_PARAMS)
+                IOHandler.read_cube("dummy.cube", SHAPE_PARAMS, shape_type="EllipticalCylinder")
 
                 # Check: Did it try to save the cache?
                 mock_save.assert_called_once()
