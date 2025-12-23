@@ -8,6 +8,7 @@ from ct_character.IOHandler import IOHandler
 from ct_character.Solver import Solver
 from ct_character.Exciton import ExcitonData, Configuration
 
+
 def parse_input_file(filepath: Path):
     """
     Parses 6-line master input file format.
