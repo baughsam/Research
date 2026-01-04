@@ -16,6 +16,9 @@ class EllipticalCylinder(Shape):
     length_c: float
     center: np.ndarray = field(default_factory=lambda: np.array([0, 0, 0]))
 
+    def __post_init__(self):
+        self.center.flags.writeable = False #Make test in Shape tests
+
 
     def is_inside(self, x, y, z) -> bool:
         # Shift to center
