@@ -25,12 +25,12 @@ ct-analysis path/to/input.in
 The input file is a strictly formatted 6-line text file (e.g., INPUT_CTCALC.in).
 
 Example:
-PEN1_3D-xyz.cube
-Cylinder
-5.1420
-5.1420
-28.1257
-PEN1_Results
+1. PEN1_3D-xyz.cube
+2. Cylinder
+3. 5.1420
+4. 5.1420
+5. 28.1257
+6. PEN1_Results
 
 Line-by-Line Guide:
 1. Cube Filename: Path to the .cube file (relative to the input file).
