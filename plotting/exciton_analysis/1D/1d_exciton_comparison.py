@@ -13,27 +13,113 @@ import sys
 # Each dictionary in this list represents one "Condition" (e.g. Pristine, T-Dep).
 # The script will plot these curves together on the same graph for a given direction.
 
-src_dir_data = "./data/prist_100%_T-dep/"
+#Colors
+colors = [
+    '#5E4FA2', '#3288BD', '#66C2A5', '#ABDDA4', '#E6F598',
+    '#FFFFBF', '#FEE08B', '#FDAE61', '#F46D43', '#9E0142'
+]
+
+src_dir_data = "./data/91cm-1_300K_percentages/"
 
 conditions = [
 {
-        "label": "Envelope T-dep",
-        "color": "blue",
+        "label": "100% 300K",
+        "color": colors[0],
         "linestyle": "-",
         "files": {
-            "a": f"{src_dir_data}envelope_cx_100_T-dep_1D-a.dat",
-            "b": f"{src_dir_data}envelope_cx_100_T-dep_1D-b.dat",
-            "c": f"{src_dir_data}envelope_cx_100_T-dep_1D-c.dat"
+            "a": f"{src_dir_data}plane_samp_dir+ex_100__300K_1D-a_density_bohr.dat",
+            "b": f"{src_dir_data}plane_samp_dir+ex_100__300K_1D-b_density_bohr.dat",
+            "c": f"{src_dir_data}plane_samp_dir+ex_100__300K_1D-c_density_bohr.dat"
         }
     },
 {
-        "label": "Envelope Pristine",
-        "color": "black",
+        "label": "90% 300K",
+        "color": colors[1],
         "linestyle": "-",
         "files": {
-            "a": f"{src_dir_data}envelope_cx_pristine_1D-a.dat",
-            "b": f"{src_dir_data}envelope_cx_pristine_1D-b.dat",
-            "c": f"{src_dir_data}envelope_cx_pristine_1D-c.dat"
+            "a": f"{src_dir_data}plane_samp_dir+ex_90__300K_1D-a_density_bohr.dat",
+            "b": f"{src_dir_data}plane_samp_dir+ex_90__300K_1D-b_density_bohr.dat",
+            "c": f"{src_dir_data}plane_samp_dir+ex_90__300K_1D-c_density_bohr.dat"
+        }
+    },
+{
+        "label": "80% 300K",
+        "color": colors[2],
+        "linestyle": "-",
+        "files": {
+            "a": f"{src_dir_data}plane_samp_dir+ex_80__300K_1D-a_density_bohr.dat",
+            "b": f"{src_dir_data}plane_samp_dir+ex_80__300K_1D-b_density_bohr.dat",
+            "c": f"{src_dir_data}plane_samp_dir+ex_80__300K_1D-c_density_bohr.dat"
+        }
+    },
+{
+        "label": "70% 300K",
+        "color": colors[3],
+        "linestyle": "-",
+        "files": {
+            "a": f"{src_dir_data}plane_samp_dir+ex_70__300K_1D-a_density_bohr.dat",
+            "b": f"{src_dir_data}plane_samp_dir+ex_70__300K_1D-b_density_bohr.dat",
+            "c": f"{src_dir_data}plane_samp_dir+ex_70__300K_1D-c_density_bohr.dat"
+        }
+    },
+{
+        "label": "60% 300K",
+        "color": colors[4],
+        "linestyle": "-",
+        "files": {
+            "a": f"{src_dir_data}plane_samp_dir+ex_60__300K_1D-a_density_bohr.dat",
+            "b": f"{src_dir_data}plane_samp_dir+ex_60__300K_1D-b_density_bohr.dat",
+            "c": f"{src_dir_data}plane_samp_dir+ex_60__300K_1D-c_density_bohr.dat"
+        }
+    },
+{
+        "label": "50% 300K",
+        "color": colors[5],
+        "linestyle": "-",
+        "files": {
+            "a": f"{src_dir_data}plane_samp_dir+ex_50__300K_1D-a_density_bohr.dat",
+            "b": f"{src_dir_data}plane_samp_dir+ex_50__300K_1D-b_density_bohr.dat",
+            "c": f"{src_dir_data}plane_samp_dir+ex_50__300K_1D-c_density_bohr.dat"
+        }
+    },
+{
+        "label": "40% 300K",
+        "color": colors[6],
+        "linestyle": "-",
+        "files": {
+            "a": f"{src_dir_data}plane_samp_dir+ex_40__300K_1D-a_density_bohr.dat",
+            "b": f"{src_dir_data}plane_samp_dir+ex_40__300K_1D-b_density_bohr.dat",
+            "c": f"{src_dir_data}plane_samp_dir+ex_40__300K_1D-c_density_bohr.dat"
+        }
+    },
+{
+        "label": "30% 300K",
+        "color": colors[7],
+        "linestyle": "-",
+        "files": {
+            "a": f"{src_dir_data}plane_samp_dir+ex_30__300K_1D-a_density_bohr.dat",
+            "b": f"{src_dir_data}plane_samp_dir+ex_30__300K_1D-b_density_bohr.dat",
+            "c": f"{src_dir_data}plane_samp_dir+ex_30__300K_1D-c_density_bohr.dat"
+        }
+    },
+{
+        "label": "20% 300K",
+        "color": colors[8],
+        "linestyle": "-",
+        "files": {
+            "a": f"{src_dir_data}plane_samp_dir+ex_20__300K_1D-a_density_bohr.dat",
+            "b": f"{src_dir_data}plane_samp_dir+ex_20__300K_1D-b_density_bohr.dat",
+            "c": f"{src_dir_data}plane_samp_dir+ex_20__300K_1D-c_density_bohr.dat"
+        }
+    },
+{
+        "label": "10% 300K",
+        "color": colors[9],
+        "linestyle": "-",
+        "files": {
+            "a": f"{src_dir_data}plane_samp_dir+ex_10__300K_1D-a_density_bohr.dat",
+            "b": f"{src_dir_data}plane_samp_dir+ex_10__300K_1D-b_density_bohr.dat",
+            "c": f"{src_dir_data}plane_samp_dir+ex_10__300K_1D-c_density_bohr.dat"
         }
     },
     # Add more conditions here if needed...
@@ -46,11 +132,11 @@ directions_to_plot = ["a", "b", "c"]
 src_dir_plots = "./plots/"
 
 # Output Directory
-output_dir = f"{src_dir_plots}1d_exciton_analysis_prist_100_tdep"
+output_dir = f"{src_dir_plots}1d_exciton_analysis_91cm-1_300K_percentages"
 
 # Plot Styling
 figure_size = (8, 6)
-line_width = 1.5
+line_width = 0.5
 font_size = 14
 grid_on = True
 

@@ -50,7 +50,7 @@ def plot_dat_file(filename, axis):
 # --- How to use the function ---
 
 # 1. Set the name of your data file
-file_to_plot = "data/envelope_10__T-dep_1D-c.dat"
+file_to_plot = "data/prist_12x12x6_samp55_hole_pos/plane_samp_dir+ex_pristine_1D-c.dat"
 
 
 # 2. Call the function to plot it
