@@ -32,4 +32,4 @@ class EllipticalCylinder(Shape):
         # Check radial condition
         radial_check = (dx / self.axis_a) ** 2 + (dy / self.axis_b) ** 2 <= 1
 
-        return length_check and radial_check
+        return length_check & radial_check
