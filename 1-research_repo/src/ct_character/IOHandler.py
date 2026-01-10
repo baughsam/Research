@@ -115,7 +115,7 @@ class IOHandler:
             atom_positions=atom_positions,
         )
 
-        data = ExcitonData(density=density)
+        data = ExcitonData(grid_data=density)
 
         return config, data
 
