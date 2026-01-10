@@ -8,7 +8,7 @@ from typing import Optional
 class ExcitonData():
     #self.variable: type # Variable from fortran code
     # Raw Data
-    density: np.ndarray # twopartcorr_INPUT
+    grid_data: np.ndarray # twopartcorr_INPUT
 
     # Middle Work
     density_inside_shape: Optional[np.ndarray] = None # twopartcorr_Volume
