@@ -39,7 +39,7 @@ class Solver:
         self._calculate_multipoles(X, Y, Z)
 
         # Calculate 1D & 2D Projections (Averaging)
-        self._calculate_projections()
+        self._calculate_projections(X, Y, Z)
 
 
 
@@ -165,7 +165,7 @@ class Solver:
             [qxz, qyz, qzz]
         ])
 
-    def _calculate_projections(self):
+    def _calculate_projections(self, X, Y, Z):
         """
         Calculate 1D planar averages.
         """
@@ -177,10 +177,10 @@ class Solver:
         rho_norm = rho * norm
 
         # Summing over (y,z) leaves x (a-axis)
-        self.data.avg_a = np.sum(rho_norm, axis=(1,2))
+        self.data.avg_a = np.sum(rho_norm * np.abs(X))
 
         #Summing over (x,z) leaves y (b-axis)
-        self.data.avg_b = np.sum(rho_norm, axis=(0,2))
+        self.data.avg_b = np.sum(rho_norm * np.abs(Y))
 
         # Summing over (x,y) leaves z (c-axis)
-        self.data.avg_c = np.sum(rho_norm, axis=(0,1))
+        self.data.avg_c = np.sum(rho_norm * np.abs(Z))
