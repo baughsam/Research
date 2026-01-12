@@ -89,7 +89,7 @@ def test_write_report():
     config.dv = 1.0
     config.shape = EllipticalCylinder(1,1,1)
 
-    data = ExcitonData(density = np.zeros((1,1,1)))
+    data = ExcitonData(grid_data = np.zeros((1,1,1)))
     data.ct_ratio = 0.55
     data.dipole_moment = np.array([0.0, 0.0, 1.0])
 

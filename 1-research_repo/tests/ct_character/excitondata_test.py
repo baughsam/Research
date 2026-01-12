@@ -8,7 +8,7 @@ def test_exciton_data_defaults():
 
     # Setup: Create data with just a dummy density
     dummy_density = np.zeros((10, 10, 10))
-    data = ExcitonData(density=dummy_density)
+    data = ExcitonData(grid_data=dummy_density)
 
     # Test: Inputs should be stored
     assert np.array_equal(data.density, dummy_density)
@@ -25,7 +25,7 @@ def test_exciton_data_defaults():
 def test_exciton_data_mutability():
     """Test 2: Mutability status of ExcitonData"""
     dummy_density = np.zeros((10, 10, 10))
-    data = ExcitonData(density=dummy_density)
+    data = ExcitonData(grid_data=dummy_density)
     data.ct_ratio = 1
 
     assert data.ct_ratio == 1
