@@ -163,17 +163,22 @@ def test_calculate_projections(clean_solver):
     # Mask keeps all the density
     clean_solver.data.density_inside_shape = np.ones((10, 10 , 10))
 
-    clean_solver._calculate_projections()
+    # Generate Coords needed for multipoles
+    X, Y, Z, R = clean_solver._generate_coordinates()
 
-    # avg_c (Z-axis profile) should be uniform
-    # Since total probability sums to 1.0, and there are 10 slices:
-    # Each slice must hold 0.1
-    expected_value = 0.1
+    clean_solver._calculate_projections(X, Y, Z)
 
-    assert np.isclose(clean_solver.data.avg_c[0], expected_value, atol=1e-6)
+    # 4. Verify the math
+    # In a 10x10x10 grid centered at 0:
+    # X coords are [-4.5, -3.5, ..., 3.5, 4.5]
+    # |X| coords are [4.5, 3.5, ..., 3.5, 4.5] -> Average is 2.5
+    expected_value = 2.5
 
-    # Sum of the projection should be 1.0
-    assert np.isclose(np.sum(clean_solver.data.avg_c), 1.0, atol=1e-6)
+    # Check that avg_a is now a single float number
+    assert isinstance(clean_solver.data.avg_a, float)
+
+    # Check that the value matches
+    assert np.isclose(np.sum(clean_solver.data.avg_a), expected_value, atol=1e-6)
 
 def test_solve_integration(clean_solver):
     """
