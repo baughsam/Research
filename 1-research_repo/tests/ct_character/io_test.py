@@ -53,8 +53,8 @@ def test_read_cube_good_path():
     # Check 3: Data Parsing
     # The string has 1.0 to 8.0
     # We verify the first and last voxels
-    assert data.density[0,0,0] == 1.0
-    assert data.density[1,1,1] == 8.0
+    assert data.grid_data[0,0,0] == 1.0
+    assert data.grid_data[1,1,1] == 8.0
 
 
 def test_broken_file_structure():

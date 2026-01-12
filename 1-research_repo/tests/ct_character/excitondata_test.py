@@ -11,7 +11,7 @@ def test_exciton_data_defaults():
     data = ExcitonData(grid_data=dummy_density)
 
     # Test: Inputs should be stored
-    assert np.array_equal(data.density, dummy_density)
+    assert np.array_equal(data.grid_data, dummy_density)
 
     # Test: Results should be empty (Safety Check)
     assert data.density_inside_shape is None
