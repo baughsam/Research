@@ -218,23 +218,3 @@ class Solver:
         self.data.avg_b2 = np.sum(rho_norm * (proj_b ** 2))
         self.data.avg_c2 = np.sum(rho_norm * (proj_c ** 2))
         self.data.avg_r2 = np.sum(rho_norm * (R ** 2))
-
-    def _calculate_projections(self, X, Y, Z):
-        """
-        Calculate 1D planar averages.
-        """
-        rho = self.data.density_inside_shape
-        total_dens = np.sum(self.data.grid_data)
-        norm = 1.0 / total_dens if total_dens > 1e-12 else 0.0
-
-        # Normalized masked density
-        rho_norm = rho * norm
-
-        # Summing over (y,z) leaves x (a-axis)
-        self.data.avg_a = np.sum(rho_norm * np.abs(X))
-
-        #Summing over (x,z) leaves y (b-axis)
-        self.data.avg_b = np.sum(rho_norm * np.abs(Y))
-
-        # Summing over (x,y) leaves z (c-axis)
-        self.data.avg_c = np.sum(rho_norm * np.abs(Z))
