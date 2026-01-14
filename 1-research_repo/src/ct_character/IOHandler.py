@@ -159,6 +159,14 @@ class IOHandler:
                 f.write(f"  <|b|> (Proj. on B):     {data.avg_b:.6f} Bohr\n")
                 f.write(f"  <|c|> (Proj. on C):     {data.avg_c:.6f} Bohr\n\n")
 
+            if data.avg_r2 is not None:
+                f.write("Second Moment Metrics:\n")
+                f.write(f"  <|r^2|>:     {data.avg_r:.6f} Bohr^2\n")
+                f.write(f"  <|a^2|>:     {data.avg_a:.6f} Bohr^2\n")
+                f.write(f"  <|b^2|>:     {data.avg_b:.6f} Bohr^2\n")
+                f.write(f"  <|c^2|>:     {data.avg_c:.6f} Bohr^2\n\n")
+
+
             # --- ANISOTROPY --- #
             if data.avg_a is not None and data.avg_b is not None:
                 ratio_ab = data.avg_a / data.avg_b if data.avg_a > 0 else 0
