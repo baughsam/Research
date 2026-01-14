@@ -174,7 +174,7 @@ class Solver:
         total_dens = np.sum(self.data.grid_data)
 
         # Save total weight for the report
-        self.data.total_weight = total_dens
+        self.data.total_weight = total_dens * self.data.dv
 
         # Normalize density (Probability Distribution)
         norm = 1.0 / total_dens if total_dens > 1e-12 else 0.0
