@@ -167,6 +167,60 @@ class Solver:
 
     def _calculate_projections(self, X, Y, Z):
         """
+        1-D Planar Averages
+        Calculates 1st (<|x|>) and 2nd (<x^2>) moments projected onto lattice vectors.
+        """
+        rho = self.data.density_inside_shape
+        total_dens = np.sum(self.data.grid_data)
+
+        # Save total weight for the report
+        self.data.total_weight = total_dens
+
+        # Normalize density (Probability Distribution)
+        norm = 1.0 / total_dens if total_dens > 1e-12 else 0.0
+        rho_norm = rho * norm
+
+        # --- Get Lattice Unit Vectors ---
+        # We need directions: a_hat, b_hat, c_hat
+        vecs = self.config.lattice_vectors  # [a, b, c]
+
+        # Calculate norms (lengths) of lattice vectors
+        a_len = np.linalg.norm(vecs[0])
+        b_len = np.linalg.norm(vecs[1])
+        c_len = np.linalg.norm(vecs[2])
+
+        # Create Unit Vectors (Direction only)
+        a_hat = vecs[0] / a_len
+        b_hat = vecs[1] / b_len
+        c_hat = vecs[2] / c_len
+
+        # --- Project Cartesian (X,Y,Z) onto Lattice Directions ---
+        # Formula: Proj = X*ux + Y*uy + Z*uz (Dot Product)
+        # Note: X, Y, Z are 3D arrays. a_hat is a vector.
+        proj_a = X * a_hat[0] + Y * a_hat[1] + Z * a_hat[2]
+        proj_b = X * b_hat[0] + Y * b_hat[1] + Z * b_hat[2]
+        proj_c = X * c_hat[0] + Y * c_hat[1] + Z * c_hat[2]
+
+        # Radial Distance (already calculated in generate_coordinates, but R is passed in usually)
+        # We can re-calculate R locally if needed, or rely on X,Y,Z
+        R = np.sqrt(X ** 2 + Y ** 2 + Z ** 2)
+
+        # --- Calculate First Moments <|x|> ---
+        # Sum ( Density * Abs(Distance) )
+        self.data.avg_a = np.sum(rho_norm * np.abs(proj_a))
+        self.data.avg_b = np.sum(rho_norm * np.abs(proj_b))
+        self.data.avg_c = np.sum(rho_norm * np.abs(proj_c))
+        self.data.avg_r = np.sum(rho_norm * R)
+
+        # --- 4. Calculate Second Moments <x^2> ---
+        # Sum ( Density * Distance^2 )
+        self.data.avg_a2 = np.sum(rho_norm * (proj_a ** 2))
+        self.data.avg_b2 = np.sum(rho_norm * (proj_b ** 2))
+        self.data.avg_c2 = np.sum(rho_norm * (proj_c ** 2))
+        self.data.avg_r2 = np.sum(rho_norm * (R ** 2))
+
+    def _calculate_projections(self, X, Y, Z):
+        """
         Calculate 1D planar averages.
         """
         rho = self.data.density_inside_shape
