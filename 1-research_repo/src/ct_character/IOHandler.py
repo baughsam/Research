@@ -151,7 +151,7 @@ class IOHandler:
 
             # --- CT & Wfn Norm --- #
             f.write("Key Results:\n")
-            f.write(f" Wavefunction Norm:     {data.total_weight:.6e} Bohr^3\n")
+            f.write(f" Wavefunction Norm:      {data.total_weight:.6e} Bohr^3\n")
             if data.ct_ratio is not None:
                 f.write(f" Charge Transfer Ratio:  {data.ct_ratio:.6f}\n")
 
