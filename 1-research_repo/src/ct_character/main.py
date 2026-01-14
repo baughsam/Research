@@ -14,8 +14,8 @@ def parse_input_file(filepath: Path):
     Parses 6-line master input file format.
     Returns:
         cube_file (str): Path to the .cube file
-        shape_type (str): 'Cylinder' or 'Ellipsoid'
-        shape_params (dict): Dictionary identifying dimension {axis_a, axis_b, length_c}
+        shape_type (str): 'EllipticalCylinder' or 'Parallelepiped'
+        shape_params (dict): Dependent on shape_type
         output_prefix (str): Prefix for output files
     """
     try:
@@ -31,15 +31,43 @@ def parse_input_file(filepath: Path):
         # Line 2: shape Type
         shape_type = lines[1]
 
-        # Lines 3-5: Shape Dimensions
-        shape_params = {
-            "axis_a": float(lines[2]),
-            "axis_b": float(lines[3]),
-            "length_c": float(lines[4])
-        }
-
         # Line 6: Output Prefix
         output_prefix = lines[5]
+
+        # Lines 3-5: Shape Dimensions
+        shape_params = {}
+
+        # Raw lines for the parameters
+        param_lines = lines[2:5]
+
+        try:
+            # Check Shape Type to decide how to parse
+            if shape_type in ['Parallelepiped', 'Box']:
+                print(f"  > Parsing vector parameters for {shape_type}...")
+                shape_params = {
+                    "vec_a": np.fromstring(param_lines[0], sep=" "),
+                    "vec_b": np.fromstring(param_lines[1], sep=" "),
+                    "vec_c": np.fromstring(param_lines[2], sep=" "),
+                }
+                # Validation: Ensure vectors are size 3
+                if any(v.size != 3 for v in shape_params.values()):
+                    print("Warning: Vectors must have 3 components. Using Defaults.")
+                    shape_params = {}
+
+            else:
+                # Default behavior: scalar floats (Cylinders, Spheres, etc...)
+                print(f"  > Parsing scalar parameters for {shape_type}...")
+                shape_params = {
+                    "axis_a": float(param_lines[0]),
+                    "axis_b": float(param_lines[1]),
+                    "length_c": float(param_lines[2]),
+                }
+        except ValueError as e:
+            print(f"Warning: Could not parse parameters for '{shape_type}': {e}")
+            print("  > Will attempt to use Shape defaults.")
+            shape_params = {}
+
+
 
         return cube_file, shape_type, shape_params, output_prefix
 
@@ -62,12 +90,15 @@ def main():
 
     print(f"--- Starting CT analysis on {input_path} ---")
 
-    # Pase Input File
+    # Parse Input File
     cube_filename, shape_type, shape_params, out_prefix = parse_input_file(input_path)
 
     print(f"  Target Cube File: {cube_filename}")
     print(f"  Shape Model:      {shape_type}")
-    print(f"  Dimensions        a={shape_params['axis_a']}, b={shape_params['axis_b']}, c={shape_params['length_c']}")
+    if shape_params:
+        print(f"  Params Found:     {list(shape_params.keys())}")
+    else:
+        print(f"  Params Found:     NONE (Will use Class Defaults)")
 
     # Read Data
     # We assume the .cube file is in the same folder as the input file,
@@ -79,7 +110,9 @@ def main():
 
     # IOHandler.read_cube returns the Config and ExcitonData objects
     try:
-        config, exciton_data = IOHandler.read_cube(filename=str(cube_path), shape_type=shape_type, shape_params=shape_params)
+        config, exciton_data = IOHandler.read_cube(filename=str(cube_path),
+                                                   shape_type=shape_type,
+                                                   shape_params=shape_params)
 
     except FileNotFoundError:
         print(f"Critical Error: The cube file '{cube_path}' was not found.")
