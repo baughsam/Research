@@ -93,7 +93,7 @@ class Solver:
         masked_sum = np.sum(self.data.density_inside_shape)
 
         if total_density > 1e-12:
-            return masked_sum / total_density
+            return 1 - ( masked_sum / total_density )
         return 0.0
 
     def _calculate_rdf_and_avg_radius(self, R):
