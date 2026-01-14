@@ -100,12 +100,21 @@ class IOHandler:
 
         except AttributeError:
             # If class name doesn't exist
-            print(f"Warning: Shape class '{shape_type}' not found in Shape.py.")
+            print(f"Warning: Shape class '{shape_type}' not found in Shape.py.\n")
             print("Defaulting to EllipticalCylinder.")
             selected_class = EllipticalCylinder
 
+        try:
+            specific_shape = selected_class(**shape_params)
+        except TypeError as e:
+            # Happens if shape_params is empty or has wrong variables/keys
+            # This happens if shape_params is empty OR has the wrong keys
+            print(f"Warning: Could not instantiate {shape_type} with provided params.")
+            print(f"  Error Detail: {e}")
+            print(f"  -> Using DEFAULT values for {shape_type}")
+            specific_shape = selected_class()
 
-        specific_shape = selected_class(**shape_params)
+
         config = Configuration(
             lattice_vectors=lattice_vectors,
             origin=origin,
