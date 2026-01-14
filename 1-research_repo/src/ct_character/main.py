@@ -142,7 +142,7 @@ def main():
     # We save them in the same folder as the input file
     output_dir = input_path.parent
     txt_out = output_dir / f"{out_prefix}_OUT.txt"
-    json_out = output_dir / f"{out_prefix}_ stats.json"
+    json_out = output_dir / f"{out_prefix}_stats.json"
 
     IOHandler.write_report(str(txt_out), config, exciton_data)
     IOHandler.write_report(str(json_out), config, exciton_data)
