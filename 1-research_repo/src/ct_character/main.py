@@ -93,6 +93,17 @@ def main():
     solver.solve()
     print("Analysis Complete.")
 
+    # Visual Shape
+    # Re-generate the mask solely for visualization
+    # (Since Solver uses it internally but doesn't store the boolean array)
+    print("Generating Mask Visualization...")
+    X, Y, Z, R = solver._generate_coordinates()
+    mask = solver._create_volume_mask(X, Y, Z)
+
+    debug_filename = f"{out_prefix}_MASK.cube"
+    IOHandler.write_mask_cube(str(debug_filename), config, mask)
+    # -----------------------
+
     # 5. Output Results
     # construct output filenames based on the prefix read from input
     # We save them in the same folder as the input file
