@@ -13,6 +13,7 @@ class ExcitonData():
     # Middle Work
     density_inside_shape: Optional[np.ndarray] = None # twopartcorr_Volume
     density_distance: Optional[np.ndarray] = None
+    total_weight: float = 0.0
 
     # Final Results
     ct_ratio: Optional[float] = None          # INVOLUMEFRACTION
