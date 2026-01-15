@@ -190,18 +190,28 @@ def combine_csv_files(input_folder, output_file):
 
 if __name__ == "__main__":
 
+    # --- Number of Planes ---
     num_of_planes = 2 #perhaps put a check that stops things if this number isn't equal to the number of lists in the index list
-    index_list =[[1,2,3,4],[5,6,7,8]]
-    plane_csv = "plane_sampling_test.csv"
 
-    coordinate_arrays = get_atom_groups_from_csv(plane_csv, index_list) #grabbing the atoms at these indexes, separated by a visual observation of which would be in a plane
+    # --- Pentacene Plane ---
+    index_list =[[35,33,31,37,39,29,27,41,44,23,24,26,43,42,28,30,40,38,32,34,36,25],[12,14,16,10,18,8,20,6,21,4,1,2,3,22,5,19,7,17,9,15,11,13]]
+    plane_csv = 'pentacene_coords_angs.csv'
 
-    #test_FPP = find_parallel_planes(coordinate_arrays[0], 1)
-    #test_num = 1
-    #project_and_save_coordinates(test_FPP, coordinate_arrays[0], base_filename=f"plane_{test_num}")
+    # --- TEST PLANE ---
+    #index_list = [[1,2,3,4],[5,6,7,8]] #TEST LIST
+    #plane_csv = "plane_sampling_test.csv"
 
+    # --- Distance Above Planes ---
+    dist_above_plane_angs = 0.01
+
+    coordinate_arrays = get_atom_groups_from_csv(plane_csv, index_list)  #grabbing the atoms at these indexes, separated by a visual observation of which would be in a plane
+
+# --- Finds Parallel Planes for each Plane ---
     for i in range(num_of_planes):
-        FPP = find_parallel_planes(coordinate_arrays[i], 1)
+        FPP = find_parallel_planes(coordinate_arrays[i], dist_above_plane_angs)
         project_and_save_coordinates(FPP, coordinate_arrays[i], base_filename=f"plane_{i+1}")
 
+
+    # --- Combines Individual Projections into 1 .csv File ---
+    #because of this, be sure to re-run so that you know the files in proj_files_csv are the correct ones
     combine_csv_files("./proj_files_csv/", "./single_proj_csv/single_proj.csv")
