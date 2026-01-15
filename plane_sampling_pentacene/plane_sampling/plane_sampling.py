@@ -89,8 +89,8 @@ def find_parallel_planes(points, distance):
     # 5. Define the parallel planes. They have the same normal vector but a different d.
     # The distance between ax+by+cz+d1=0 and ax+by+cz+d2=0 is |d1-d2|/sqrt(a^2+b^2+c^2).
     # Since our normal is a unit vector, the distance is just |d1-d2|.
-    d_above = d - distance
-    d_below = d + distance
+    d_above = d + distance
+    d_below = d - distance
 
     return {
         "best_fit_plane": {"normal": normal_vector, "d": d},
