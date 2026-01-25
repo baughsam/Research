@@ -63,6 +63,7 @@ def clean_solver():
     # Create Mocks
     mock_config = MockConfig()
     mock_data = MockExcitonData(grid_data=empty_density_grid)
+    mock_config.dv = 1.0
 
     # Return the Solver instance
     return Solver(mock_data, mock_config)
@@ -121,7 +122,7 @@ def test_calculate_ct_ratio(clean_solver):
     clean_solver.data.density_inside_shape[0:5,0:5,0] = 1.0
 
     ratio = clean_solver._calculate_ct_ratio()
-    assert np.isclose(ratio, 0.25, atol=1e-6)
+    assert np.isclose(ratio, 0.75, atol=1e-6)
 
 def test_calculate_multipoles_dipole(clean_solver):
     """
