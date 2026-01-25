@@ -104,31 +104,44 @@ class Solver:
         nb_bins = min(300, int(np.max(self.data.grid_data.shape)))
         bins = np.linspace(0, np.max(R), nb_bins +1)
 
-        # Weighted histogram (sum of density in shell)
-        hist_rho, bin_edges = np.histogram(R, bins=bins, weights=self.data.grid_data)
-        # Count histogram (volume of shell in voxels)
+
+        # Total Density Histogram
+        hist_total_rho, bin_edges = np.histogram(R, bins=bins, weights=self.data.grid_data)
+
+        # In-Volume Density
+        hist_in_vol_rho, _ = np.histogram(R, bins=bins, weights=self.data.density_inside_shape)
+
+        # Volume Count (Shell Volume in Voxels)
         hist_counts, _ = np.histogram(R, bins=bins)
+
+        #Store raw counts for outpur
+        self.data.rdf_counts = hist_counts
+
 
         #Bin centers
         # Can't plot data point at a "boundary". we have to plot it at the center
         self.data.rdf_distance = (bin_edges[:-1] + bin_edges[1:]) / 2.0
 
+
         # Safe division for avg density at r
-        with np.errstate(divide='ignore', invalid='ignore'): # Empty bins won't crash Python (division by zero)
-            avg_rho = np.nan_to_num(hist_rho / hist_counts) #Converts NaN to zero
+        with (np.errstate(divide='ignore', invalid='ignore')): # Empty bins won't crash Python (division by zero)
+            avg_rho_total = np.nan_to_num(hist_total_rho / hist_counts)
+            avg_rho_in_vol = np.nan_to_num(hist_in_vol_rho / hist_counts)
 
-        # Raw (non-normalized) density profile
-        self.data.density_distance = avg_rho # Raw profile
+        # Normalization
+        cdf_total = np.sum(avg_rho_total)
 
-        #Normalized RDF (CDF = 1)
-        cdf = np.cumsum(avg_rho)
-        if cdf[-1] > 0:
-            self.data.rdf_values = avg_rho / cdf[-1]
+        if cdf_total > 1e-12:
+            self.data.rdf_values = avg_rho_total / cdf_total
+            self.data.rdf_in_volume_values = avg_rho_in_vol / cdf_total
         else:
-            self.data.rdf_values = avg_rho
+            self.data.rdf_values = avg_rho_total
+            self.data.rdf_in_volume_values = avg_rho_in_vol
 
-        # Average Radius of Electron from Center <r>
-        # Sum (Probability of being at distance r * Distance)
+        # Store raw density profile if needed for other cals
+        self.data.density_distance = avg_rho_total
+
+        # Average Radius of Electron <r>
         self.data.avg_r = np.sum(self.data.rdf_values * self.data.rdf_distance)
 
     def _calculate_multipoles(self, X, Y, Z):
