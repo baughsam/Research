@@ -24,6 +24,10 @@ class ExcitonData():
     rdf_distance: Optional[np.ndarray] = None   # X-axis
     rdf_values: Optional[np.ndarray] = None     # Y-axis
 
+    # In-Volume Output
+    rdf_in_volume_values: Optional[np.ndarray] = None  # Y-axis (In-Volume Density, Normalized)
+    rdf_counts: Optional[np.ndarray] = None            # 4th Column (Shell Volume in voxels)
+
     # First Moments ,|x|>
     # Average distance values (to replicate _OUT.txt in .f90 file)
     avg_r: Optional[float] = None  # <|r|>
