@@ -100,9 +100,21 @@ class Solver:
         """
         Calculates Radial Distribution Function and <r>
         """
-        # Binning
-        nb_bins = min(300, int(np.max(self.data.grid_data.shape)))
-        bins = np.linspace(0, np.max(R), nb_bins +1)
+
+        diagonal = np.max(R)
+
+        # Calculating voxel size
+        step_vectors = np.linalg.norm(self.config.transform_matrix, axis=0)
+        max_voxel_step = np.max(step_vectors) # 'Max Norm'
+
+        # Find Nb_Distance
+        # "IF (DistanceStep > Maximum_norm) Nb_Distances=id"
+        # Algebraic Interpretation of the loop:
+        # diagonal / nb_bins > max_voxel_step -> nb_bins < diagonal / max_voxel_step
+        nb_bins = int(diagonal / max_voxel_step)
+
+        # Create Bins
+        bins = np.linspace(0, diagonal, nb_bins + 1)
 
 
         # Total Density Histogram
@@ -114,13 +126,16 @@ class Solver:
         # Volume Count (Shell Volume in Voxels)
         hist_counts, _ = np.histogram(R, bins=bins)
 
-        #Store raw counts for outpur
+        #Store raw counts for output
         self.data.rdf_counts = hist_counts
 
 
-        #Bin centers
+        # Bin centers
         # Can't plot data point at a "boundary". we have to plot it at the center
-        self.data.rdf_distance = (bin_edges[:-1] + bin_edges[1:]) / 2.0
+        #self.data.rdf_distance = (bin_edges[:-1] + bin_edges[1:]) / 2.0
+
+        # Bin (Left Edge)
+        self.data.rdf_distance = bin_edges[:-1]
 
 
         # Safe division for avg density at r
@@ -142,7 +157,8 @@ class Solver:
         self.data.density_distance = avg_rho_total
 
         # Average Radius of Electron <r>
-        self.data.avg_r = np.sum(self.data.rdf_values * self.data.rdf_distance)
+        bin_centers = (bin_edges[:-1] + bin_edges[1:]) / 2.0
+        self.data.avg_r = np.sum(self.data.rdf_values * bin_centers)
 
     def _calculate_multipoles(self, X, Y, Z):
         """
