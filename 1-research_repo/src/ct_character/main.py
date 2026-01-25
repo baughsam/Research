@@ -144,11 +144,16 @@ def main():
     txt_out = output_dir / f"{out_prefix}_OUT.txt"
     json_out = output_dir / f"{out_prefix}_stats.json"
 
+    # Distance In-Volume File
+    rdf_out = output_dir / f"{out_prefix}_1D-distance-involume.dat"
+
     IOHandler.write_report(str(txt_out), config, exciton_data)
     IOHandler.write_report(str(json_out), config, exciton_data)
+    IOHandler.write_distance_involume(str(rdf_out), exciton_data)
 
     print(f"\n--- Done ---")
     print(f"Summary written to: {txt_out}")
+    print(f"RDF Data written to: {rdf_out}")
 
 if __name__ == "__main__":
     main()
