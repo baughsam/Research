@@ -101,7 +101,9 @@ class Solver:
         Calculates Radial Distribution Function and <r>
         """
 
-        diagonal = np.max(R)
+        vecs = self.config.lattice_vectors
+        box_diagonal_vector = vecs[0] + vecs[1] + vecs[2]
+        diagonal = np.linalg.norm(box_diagonal_vector)
 
         # Calculating voxel size
         step_vectors = np.linalg.norm(self.config.transform_matrix, axis=0)
