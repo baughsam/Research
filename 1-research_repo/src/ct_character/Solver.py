@@ -125,6 +125,7 @@ class Solver:
         # Fortran: Iterates id=1..N. IF (Diag/id > Max_Voxel) Nb=id.
         # This finds the largest Number of Bins where the Step Size is still > Voxel Size.
 
+        """
         # Calculating voxel size
         step_vectors = np.linalg.norm(self.config.transform_matrix, axis=0)
         max_voxel_step = np.max(step_vectors)
@@ -149,7 +150,7 @@ class Solver:
         # Algebraic Interpretation of the loop:
         # diagonal / nb_bins > max_voxel_step -> nb_bins < diagonal / max_voxel_step
         nb_bins = int(diagonal / max_voxel_step)
-        """
+
 
         # Create Bins
         bins = np.linspace(0, diagonal, nb_bins + 1)
