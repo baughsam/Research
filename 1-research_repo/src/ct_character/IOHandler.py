@@ -87,7 +87,9 @@ class IOHandler:
                 print("Parsing text volumatric data (Slow)...")
 
                 raw_data = np.fromstring(f.read(), sep=' ')
-                density = raw_data.reshape(tuple(grid_shape))
+                #density = raw_data.reshape(tuple(grid_shape))
+                # Swap to (Z, Y, X) read order if file was written that way
+                density = raw_data.reshape(tuple(grid_shape[::-1])).T
 
                 print(f"Saving binary cache to: {cache_path}")
                 np.save(cache_path, density)
