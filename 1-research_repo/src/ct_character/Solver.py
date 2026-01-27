@@ -42,7 +42,7 @@ class Solver:
         self._calculate_projections(X, Y, Z)
 
 
-
+"""
     def _generate_coordinates(self):
         """Generates 3D Cartesian coordinates (X, Y, Z) and Radius (R)."""
         nx, ny, nz = self.data.grid_data.shape
@@ -64,6 +64,45 @@ class Solver:
         R = np.sqrt(X**2 + Y**2 + Z**2)
 
         return X, Y, Z, R
+"""
+
+
+def _generate_coordinates(self):
+    """
+    Generates 3D Cartesian coordinates (X, Y, Z) and Radius (R).
+    OPTIMIZED: Uses float32 and in-place math to prevent MemoryError.
+    """
+    nx, ny, nz = self.data.grid_data.shape
+
+    # 1. Use float32 indices (Saves 50% RAM compared to float64)
+    i, j, k = np.indices((nx, ny, nz), dtype=np.float32)
+
+    # 2. Center indices in-place (No new array creation)
+    i -= (nx / 2.0)
+    j -= (ny / 2.0)
+    k -= (nz / 2.0)
+
+    # 3. Manual Transform (Avoids creating giant 'stack' or 'tensordot' copies)
+    M = self.config.transform_matrix
+
+    # Allocate X, Y, Z directly from the linear combinations
+    # X = i*M[0,0] + j*M[0,1] + k*M[0,2]
+    X = i * M[0, 0] + j * M[0, 1] + k * M[0, 2]
+    Y = i * M[1, 0] + j * M[1, 1] + k * M[1, 2]
+    Z = i * M[2, 0] + j * M[2, 1] + k * M[2, 2]
+
+    # 4. CRITICAL: Delete indices immediately to free ~2-3 GB
+    del i, j, k
+
+    # 5. Calculate R with memory-safe accumulation
+    # Don't use R = np.sqrt(X**2 + Y**2 + Z**2) because it creates 3 huge temp arrays.
+
+    R = np.square(X)  # R holds X^2
+    R += np.square(Y)  # Add Y^2 in-place
+    R += np.square(Z)  # Add Z^2 in-place
+    np.sqrt(R, out=R)  # Square root in-place
+
+    return X, Y, Z, R
 
     def _create_volume_mask(self, X, Y, Z):
         """

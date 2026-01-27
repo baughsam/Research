@@ -86,7 +86,10 @@ class IOHandler:
             if density is None:
                 print("Parsing text volumatric data (Slow)...")
 
-                raw_data = np.fromstring(f.read(), sep=' ')
+                # Fixes Fortran 'D' notation (just in case)
+                content = f.read().replace('D', 'E').replace('d', 'E')
+
+                raw_data = np.fromstring(content, sep=' ').astype(np.float32)
                 density = raw_data.reshape(tuple(grid_shape))
 
 
