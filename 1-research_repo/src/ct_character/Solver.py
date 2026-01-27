@@ -42,31 +42,6 @@ class Solver:
         self._calculate_projections(X, Y, Z)
 
 
-"""
-    def _generate_coordinates(self):
-        Generates 3D Cartesian coordinates (X, Y, Z) and Radius (R).
-        nx, ny, nz = self.data.grid_data.shape
-        i, j, k = np.indices((nx,ny,nz), dtype=float)
-
-        # Center indices (0,0,0 at center of box)
-        di = i - (nx / 2.0)
-        dj = j - (ny / 2.0)
-        dk = k - (nz / 2.0)
-
-        #Stack for matrix multiplication
-        grid_coords = np.stack([di, dj, dk], axis=0)
-
-        # Transform Grid -> Cartesian using Lattice Matrix
-        # shape: (3, nx, ny, nz)
-        coords = np.tensordot(self.config.transform_matrix, grid_coords, axes=(1,0))
-
-        X, Y, Z = coords[0], coords[1], coords[2]
-        R = np.sqrt(X**2 + Y**2 + Z**2)
-
-        return X, Y, Z, R
-"""
-
-
     def _generate_coordinates(self):
         """
         Generates 3D Cartesian coordinates (X, Y, Z) and Radius (R).
