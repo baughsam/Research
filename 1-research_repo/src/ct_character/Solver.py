@@ -44,7 +44,7 @@ class Solver:
 
 """
     def _generate_coordinates(self):
-        """Generates 3D Cartesian coordinates (X, Y, Z) and Radius (R)."""
+        Generates 3D Cartesian coordinates (X, Y, Z) and Radius (R).
         nx, ny, nz = self.data.grid_data.shape
         i, j, k = np.indices((nx,ny,nz), dtype=float)
 
