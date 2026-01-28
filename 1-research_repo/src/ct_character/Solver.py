@@ -41,41 +41,38 @@ class Solver:
         # Calculate 1D & 2D Projections (Averaging)
         self._calculate_projections(X, Y, Z)
 
-
     def _generate_coordinates(self):
         """
         Generates 3D Cartesian coordinates (X, Y, Z) and Radius (R).
-        OPTIMIZED: Uses float32 and in-place math to prevent MemoryError.
+        RESTORED: Uses the original fast matrix math (tensordot).
+        ADJUSTED: Uses float32 to try and fit in RAM.
         """
         nx, ny, nz = self.data.grid_data.shape
 
-        # 1. Use float32 indices (Saves 50% RAM compared to float64)
+        # 1. Use float32 (The only change from the original code)
+        # This cuts memory usage by 50% while keeping the fast vectorized math.
         i, j, k = np.indices((nx, ny, nz), dtype=np.float32)
 
-        # 2. Center indices in-place (No new array creation)
-        i -= (nx / 2.0)
-        j -= (ny / 2.0)
-        k -= (nz / 2.0)
+        # Center indices
+        di = i - (nx / 2.0)
+        dj = j - (ny / 2.0)
+        dk = k - (nz / 2.0)
 
-        # 3. Manual Transform (Avoids creating giant 'stack' or 'tensordot' copies)
-        M = self.config.transform_matrix
-
-        # Allocate X, Y, Z directly from the linear combinations
-        # X = i*M[0,0] + j*M[0,1] + k*M[0,2]
-        X = i * M[0, 0] + j * M[0, 1] + k * M[0, 2]
-        Y = i * M[1, 0] + j * M[1, 1] + k * M[1, 2]
-        Z = i * M[2, 0] + j * M[2, 1] + k * M[2, 2]
-
-        # 4. CRITICAL: Delete indices immediately to free ~2-3 GB
+        # Clean up immediately to make room for the big stack
         del i, j, k
 
-        # 5. Calculate R with memory-safe accumulation
-        # Don't use R = np.sqrt(X**2 + Y**2 + Z**2) because it creates 3 huge temp arrays.
+        # 2. The "Old" Fast Method (Stack + Tensordot)
+        # This is memory heavy but very fast.
+        grid_coords = np.stack([di, dj, dk], axis=0)
 
-        R = np.square(X)  # R holds X^2
-        R += np.square(Y)  # Add Y^2 in-place
-        R += np.square(Z)  # Add Z^2 in-place
-        np.sqrt(R, out=R)  # Square root in-place
+        # Transform Grid -> Cartesian
+        coords = np.tensordot(self.config.transform_matrix, grid_coords, axes=(1, 0))
+
+        # Clean up input immediately
+        del grid_coords
+
+        X, Y, Z = coords[0], coords[1], coords[2]
+        R = np.sqrt(X ** 2 + Y ** 2 + Z ** 2)
 
         return X, Y, Z, R
 
