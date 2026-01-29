@@ -54,9 +54,9 @@ class Solver:
         i, j, k = np.indices((nx, ny, nz), dtype=np.float32)
 
         # Center indices
-        di = i - (nx / 2.0)
-        dj = j - (ny / 2.0)
-        dk = k - (nz / 2.0)
+        di = i - ((nx / 2.0) - 1)
+        dj = j - ((ny / 2.0) - 1)
+        dk = k - ((nz / 2.0) - 1)
 
         # Clean up immediately to make room for the big stack
         del i, j, k

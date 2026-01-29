@@ -166,20 +166,26 @@ class IOHandler:
                 f.write(f" Dipole Moment (Vector): {data.dipole_moment}\n")
                 f.write(f" Dipole Magnitude:       {dipole_mag:.6f} Bohr\n\n")
 
-            # -- MOMENTS --- #
-            if data.avg_r is not None:
+                # -- MOMENTS --- #
                 f.write("First Moment Metrics (Average Distance):\n")
-                f.write(f"  <|r|> (Mean Radius):    {data.avg_r:.6f} Bohr\n")
-                f.write(f"  <|a|> (Proj. on A):     {data.avg_a:.6f} Bohr\n")
-                f.write(f"  <|b|> (Proj. on B):     {data.avg_b:.6f} Bohr\n")
-                f.write(f"  <|c|> (Proj. on C):     {data.avg_c:.6f} Bohr\n\n")
+                if data.avg_r is not None:
+                    f.write(f"  <|r|> (Mean Radius):    {data.avg_r:.6f} Bohr\n")
+                if data.avg_a is not None:
+                    f.write(f"  <|a|> (Proj. on A):     {data.avg_a:.6f} Bohr\n")
+                if data.avg_b is not None:
+                    f.write(f"  <|b|> (Proj. on B):     {data.avg_b:.6f} Bohr\n")
+                if data.avg_c is not None:
+                    f.write(f"  <|c|> (Proj. on C):     {data.avg_c:.6f} Bohr\n\n")
 
-            if data.avg_r2 is not None:
                 f.write("Second Moment Metrics:\n")
-                f.write(f"  <|r^2|>:     {data.avg_r:.6f} Bohr^2\n")
-                f.write(f"  <|a^2|>:     {data.avg_a:.6f} Bohr^2\n")
-                f.write(f"  <|b^2|>:     {data.avg_b:.6f} Bohr^2\n")
-                f.write(f"  <|c^2|>:     {data.avg_c:.6f} Bohr^2\n\n")
+                if data.avg_r2 is not None:
+                    f.write(f"  <|r^2|>:     {data.avg_r2:.6f} Bohr^2\n")
+                if data.avg_a2 is not None:
+                    f.write(f"  <|a^2|>:     {data.avg_a2:.6f} Bohr^2\n")
+                if data.avg_b2 is not None:
+                    f.write(f"  <|b^2|>:     {data.avg_b2:.6f} Bohr^2\n")
+                if data.avg_c2 is not None:
+                    f.write(f"  <|c^2|>:     {data.avg_c2:.6f} Bohr^2\n\n")
 
 
             # --- ANISOTROPY --- #
