@@ -33,7 +33,7 @@ class Solver:
         self.data.ct_ratio = self._calculate_ct_ratio()
 
         # Calculate Radial Distribution (RDF) & Average Radius
-        self._calculate_rdf_and_avg_radius(R)
+        self._calculate_rdf_and_fortran_comparison(R)
 
         # Calculate Multipoles (Dipole & Quadrupole)
         self._calculate_multipoles(X, Y, Z)
