@@ -107,94 +107,63 @@ class Solver:
             return 1 - ( masked_sum / total_density )
         return 0.0
 
-    def _calculate_rdf_and_avg_radius(self, R):
+    def _calculate_rdf_and_fortran_comparison(self, R):
         """
-        Calculates Radial Distribution Function and <r>
+        Calculates both Density (Legacy) and Probability Mass (Exact/Eq 9) profiles.
         """
-
         vecs = self.config.lattice_vectors
         box_diagonal_vector = vecs[0] + vecs[1] + vecs[2]
         diagonal = np.linalg.norm(box_diagonal_vector)
 
-        # ... inside _calculate_rdf_and_avg_radius ...
-
-        # --- Replicate Fortran "Loop" Logic for Nb_Distances ---
-        # Fortran: Iterates id=1..N. IF (Diag/id > Max_Voxel) Nb=id.
-        # This finds the largest Number of Bins where the Step Size is still > Voxel Size.
-
-        """
-        # Calculating voxel size
+        # 1. Determine Bins
         step_vectors = np.linalg.norm(self.config.transform_matrix, axis=0)
         max_voxel_step = np.max(step_vectors)
-
-        nb_bins = 1
-        # We simulate the Fortran loop up to a reasonable max (e.g. total voxels)
-        # Only go as high as needed (Diag / Voxel)
-        limit = int(diagonal / max_voxel_step) + 5
-
-        for i in range(1, limit):
-            current_step = diagonal / i
-            if current_step > max_voxel_step:
-                nb_bins = i
-            # Fortran continues looping, but Nb only updates if condition is met.
-        """
-        # Calculating voxel size
-        step_vectors = np.linalg.norm(self.config.transform_matrix, axis=0)
-        max_voxel_step = np.max(step_vectors) # 'Max Norm'
-
-        # Find Nb_Distance
-        # "IF (DistanceStep > Maximum_norm) Nb_Distances=id"
-        # Algebraic Interpretation of the loop:
-        # diagonal / nb_bins > max_voxel_step -> nb_bins < diagonal / max_voxel_step
         nb_bins = int(diagonal / max_voxel_step)
-
-
-        # Create Bins
         bins = np.linspace(0, diagonal, nb_bins + 1)
 
+        # 2. Calculate Histograms (WEIGHTED BY DENSITY)
+        # This sums the density * voxel_count in each shell.
+        # Since sum(density) = 1, this IS the Probability Mass.
+        hist_total_mass, bin_edges = np.histogram(R, bins=bins, weights=self.data.grid_data)
+        hist_in_vol_mass, _ = np.histogram(R, bins=bins, weights=self.data.density_inside_shape)
 
-        # Total Density Histogram
-        hist_total_rho, bin_edges = np.histogram(R, bins=bins, weights=self.data.grid_data)
-
-        # In-Volume Density
-        hist_in_vol_rho, _ = np.histogram(R, bins=bins, weights=self.data.density_inside_shape)
-
-        # Volume Count (Shell Volume in Voxels)
+        # 3. Calculate Counts (Volume of shell in voxels)
         hist_counts, _ = np.histogram(R, bins=bins)
 
-        #Store raw counts for output
         self.data.rdf_counts = hist_counts
-
-
-        # Bin centers
-        # Can't plot data point at a "boundary". we have to plot it at the center
-        #self.data.rdf_distance = (bin_edges[:-1] + bin_edges[1:]) / 2.0
-
-        # Bin (Left Edge)
         self.data.rdf_distance = bin_edges[:-1]
-
-
-        # Safe division for avg density at r
-        with (np.errstate(divide='ignore', invalid='ignore')): # Empty bins won't crash Python (division by zero)
-            avg_rho_total = np.nan_to_num(hist_total_rho / hist_counts)
-            avg_rho_in_vol = np.nan_to_num(hist_in_vol_rho / hist_counts)
-
-        # Normalization
-        cdf_total = np.sum(avg_rho_total)
-
-        if cdf_total > 1e-12:
-            self.data.rdf_values = avg_rho_total / cdf_total
-            self.data.rdf_in_volume_values = avg_rho_in_vol / cdf_total
-        else:
-            self.data.rdf_values = avg_rho_total
-            self.data.rdf_in_volume_values = avg_rho_in_vol
-
-        # Store raw density profile if needed for other cals
-        self.data.density_distance = avg_rho_total
-
-        # Average Radius of Electron <r>
         bin_centers = (bin_edges[:-1] + bin_edges[1:]) / 2.0
-        self.data.avg_r = np.sum(self.data.rdf_values * bin_centers)
+
+        # --- A. LEGACY FORTRAN (Density) ---
+        # Density = Mass / Volume. This removes the volume weighting.
+        with np.errstate(divide='ignore', invalid='ignore'):
+            rho_total = np.nan_to_num(hist_total_mass / hist_counts)
+            rho_in_vol = np.nan_to_num(hist_in_vol_mass / hist_counts)
+
+        # Normalize densities to sum to 1 (Legacy behavior)
+        norm_rho = np.sum(rho_total)
+        if norm_rho > 1e-12:
+            self.data.rdf_density_total = rho_total / norm_rho
+            self.data.rdf_density_in_vol = rho_in_vol / norm_rho
+        else:
+            self.data.rdf_density_total = rho_total
+            self.data.rdf_density_in_vol = rho_in_vol
+
+        self.data.avg_r_fortran = np.sum(self.data.rdf_density_total * bin_centers)
+
+        # --- B. EXACT PHYSICS (Probability Mass) ---
+        # We normalize by the TOTAL mass of the system.
+        # This preserves the relative magnitude of "In-Volume" vs "Total".
+        total_system_mass = np.sum(hist_total_mass)
+
+        if total_system_mass > 1e-12:
+            self.data.rdf_probability_total = hist_total_mass / total_system_mass
+            self.data.rdf_probability_in_vol = hist_in_vol_mass / total_system_mass
+        else:
+            self.data.rdf_probability_total = hist_total_mass
+            self.data.rdf_probability_in_vol = hist_in_vol_mass
+
+        # NOTE: Summing self.data.rdf_probability_in_vol NOW gives the integral in Eq 9.
 
     def _calculate_multipoles(self, X, Y, Z):
         """
