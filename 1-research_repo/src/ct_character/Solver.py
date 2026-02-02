@@ -36,7 +36,7 @@ class Solver:
         self._calculate_rdf_and_fortran_comparison(R)
 
         # Calculate Multipoles (Dipole & Quadrupole)
-        self._calculate_multipoles(X, Y, Z)
+        #self._calculate_multipoles(X, Y, Z)
 
         # Calculate 1D & 2D Projections (Averaging)
         self._calculate_projections(X, Y, Z)
