@@ -182,14 +182,36 @@ class Solver:
         """
         Normalizes all accumulated sums and stores them in self.data.
         """
-        total_dens = acc['total_density']
-        norm = 1.0 / total_dens if total_dens > 1e-12 else 0.0
+        # 1. Retrieve the Volume Element (dV) from Config
+        dv = self.config.dv
 
-        # 1. CT Ratio
-        if total_dens > 1e-12:
-            self.data.ct_ratio = 1.0 - (acc['masked_density'] / total_dens)
+        # 2. Convert Raw Density Sums -> Physical Charge (Electrons)
+        # Formula: Charge = Sum(Density) * dV
+        total_electrons = acc['total_density'] * dv
+        masked_electrons = acc['masked_density'] * dv
+
+        # DEBUG: Print this to console so the user can verify the .cube file
+        print(f"  > Integration Check:")
+        print(f"    Total Charge in System: {total_electrons:.4f}")
+        print(f"    Charge inside Mask:     {masked_electrons:.4f}")
+
+        # 3. Calculate CT Ratio (Normalizing by Total Charge)
+        if total_electrons > 1e-12:
+            # Fraction of charge OUTSIDE the mask (1 - Inside/Total)
+            # Since dV is in both numerator and denominator, it technically cancels,
+            # but using the electron variables makes the logic physically explicit.
+            self.data.ct_ratio = 1.0 - (masked_electrons / total_electrons)
+
+            # Normalization factor for moments (1 / Total_Density_Sum)
+            # Moments are weighted averages: Sum(r * rho) / Sum(rho)
+            # The dV cancels here too, so we can stick to density normalization for stability.
+            norm = 1.0 / acc['total_density']
         else:
             self.data.ct_ratio = 0.0
+            norm = 0.0
+
+        # Store Total Weight (Wavefunction Norm)
+        self.data.total_weight = total_electrons
 
         # 2. Multipoles
         self.data.dipole_moment = acc['dipole'] * norm
@@ -202,7 +224,7 @@ class Solver:
         self.data.quadrupole_moment = q * norm
 
         # 3. Exact Moments
-        self.data.total_weight = total_dens * self.config.dv
+        self.data.total_weight = total_electrons
 
         self.data.avg_r_exact = acc['moment_r'] * norm
         self.data.avg_a_exact = acc['moment_a'] * norm
