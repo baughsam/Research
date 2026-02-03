@@ -188,7 +188,7 @@ class Solver:
         # 2. Convert Raw Density Sums -> Physical Charge (Electrons)
         # Formula: Charge = Sum(Density) * dV
         total_electrons_no_vol_weight = acc['total_density']
-        masked_electrons_no_vol_weight = acc['masked_density'] * dv
+        masked_electrons_no_vol_weight = acc['masked_density'] 
         total_electrons = acc['total_density'] * dv
         masked_electrons = acc['masked_density'] * dv
 
