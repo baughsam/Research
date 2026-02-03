@@ -187,13 +187,17 @@ class Solver:
 
         # 2. Convert Raw Density Sums -> Physical Charge (Electrons)
         # Formula: Charge = Sum(Density) * dV
+        total_electrons_no_vol_weight = acc['total_density']
+        masked_electrons_no_vol_weight = acc['masked_density'] * dv
         total_electrons = acc['total_density'] * dv
         masked_electrons = acc['masked_density'] * dv
 
         # DEBUG: Print this to console so the user can verify the .cube file
         print(f"  > Integration Check:")
-        print(f"    Total Charge in System: {total_electrons:.4f}")
-        print(f"    Charge inside Mask:     {masked_electrons:.4f}")
+        print(f"    Total Charge in System (no vol weight): {total_electrons_no_vol_weight:.4f}")
+        print(f"    Charge inside Mask (no vol weight):     {masked_electrons_no_vol_weight:.4f}")
+        print(f"    Total Charge in System (vol weight): {total_electrons:.4f}")
+        print(f"    Charge inside Mask (vol weight):     {masked_electrons:.4f}")
 
         # 3. Calculate CT Ratio (Normalizing by Total Charge)
         if total_electrons > 1e-12:
