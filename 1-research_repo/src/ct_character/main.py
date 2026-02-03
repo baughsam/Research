@@ -137,8 +137,7 @@ def main():
     # Re-generate the mask solely for visualization
     # (Since Solver uses it internally but doesn't store the boolean array)
     print("Generating Mask Visualization...")
-    X, Y, Z, R = solver._generate_coordinates()
-    mask = solver._create_volume_mask(X, Y, Z)
+    mask = solver.build_visual_mask()
 
     debug_filename = f"{out_prefix}_MASK.cube"
     IOHandler.write_mask_cube(str(debug_filename), config, mask)

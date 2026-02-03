@@ -47,6 +47,24 @@ class Solver:
         self._finalize_results(acc)
         print("Solver finished successfully.")
 
+    def build_visual_mask(self):
+        """
+        NEW METHOD: Reconstructs the 3D boolean mask for visualization
+        slice-by-slice to avoid RAM spikes.
+        """
+        print("  > Re-generating mask for visualization (Slice-by-Slice)...")
+        nx, ny, nz = self.data.grid_data.shape
+        full_mask = np.zeros((nx, ny, nz), dtype=bool)
+
+        xy_base = self._precompute_xy_grid(nx, ny)
+        z_step_vec = self.config.transform_matrix[:, 2]
+
+        for k in range(nz):
+            X, Y, Z, _ = self._generate_slice_coords(k, nz, xy_base, z_step_vec)
+            full_mask[:, :, k] = self._create_volume_mask(X, Y, Z)
+
+        return full_mask
+
     def _initialize_accumulators(self):
         """Prepares zeroed variables to hold sums during the loop."""
         # RDF Binning Setup
