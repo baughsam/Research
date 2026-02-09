@@ -76,8 +76,48 @@ def parse_input_file(filepath: Path):
         sys.exit(1)
 
 
+def print_banner():
+    ascii_art = r"""
+      ______ ______   ___                __            _
+     / ____//_  __/  /   |  ____  ____ _/ /_  _______ (_)____
+    / /      / /    / /| | / __ \/ __ `/ / / / / ___// // ___/
+   / /___   / /    / ___ |/ / / / /_/ / / /_/ (__  )/ (__  )
+   \____/  /_/    /_/  |_/_/ /_/\__,_/_/\__, /____//_/____/
+                                       /____/
+    """
+
+    # Width configuration for the box (60 matches the ASCII width roughly)
+    w = 62
+
+    print(ascii_art)
+    print("*" * w)
+    print("*" + "EXCITON CHARACTERIZATION SUITE".center(w - 2) + "*")
+    print("*" + "v1.0.0 (Python Port)".center(w - 2) + "*")
+    print("*" * w)
+    print("*" + " ".center(w - 2) + "*")
+    print("*" + "  Based on the original Fortran implementation by:".ljust(w - 2) + "*")
+    print("*" + "    Sahar Sharifzadeh & Pierre Darancet".ljust(w - 2) + "*")
+    print("*" + "    (The Molecular Foundry, Berkeley)".ljust(w - 2) + "*")
+    print("*" + " ".center(w - 2) + "*")
+    print("*" + "  Python Rewrite & Optimization by:".ljust(w - 2) + "*")
+    print("*" + "    Samson Baughman".ljust(w - 2) + "*")
+    print("*" + " ".center(w - 2) + "*")
+    print("*" * w)
+    print("*" + "  This software assumes the GNU General Public License.".ljust(w - 2) + "*")
+    print("*" + "  See http://www.gnu.org/copyleft/gpl.txt".ljust(w - 2) + "*")
+    print("*" * w)
+    print("\n")
+
+
+# --- Usage in main() ---
+# def main():
+#     print_banner()
+#     ...
+
+
 def main():
-    # 1. Parse Command Line Arguments
+    print_banner()
+    # Parse Command Line Arguments
     # This allows users to run: python main.py input.in
     parser = argparse. ArgumentParser(description="Charge Transfer Analysis Code")
     parser.add_argument("input_file", type=str, help="Path to the master input file (e.g., INPUT_CTCALC.in")
