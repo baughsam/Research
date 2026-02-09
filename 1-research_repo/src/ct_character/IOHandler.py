@@ -146,7 +146,7 @@ class IOHandler:
             f.write("*************************************************\n")
             f.write("           Exciton Analysis Summary              \n")
             f.write("*************************************************\n")
-            f.write(f"  Date: {now}\n")  # <--- NEW LINE
+            f.write(f"  Date: {now}\n")
             f.write("*************************************************\n\n")
 
             # --- System Parameters ---
@@ -223,7 +223,7 @@ class IOHandler:
     @staticmethod
     def write_distance_involume(filename: str, data: ExcitonData):
         """
-        Writes RDF analysis with BOTH Legacy (Density) and Correct (Probability) columns.
+        Writes RDF analysis with Legacy, Probability, and Counts.
         """
         print(f"Writing RDF analysis to: {filename}...")
 
@@ -232,14 +232,17 @@ class IOHandler:
             return
 
         with open(filename, 'w') as f:
-            # Clear Header explaining the columns
-            f.write(f"# {'Dist':>12} {'Legacy_In':>14} {'Legacy_Tot':>14} {'Prob_In':>14} {'Prob_Tot':>14}\n")
-            f.write(f"# {'[Bohr]':>12} {'(Avg Rho)':>14} {'(Avg Rho)':>14} {'(Norm)':>14} {'(Norm)':>14}\n")
+            # Header matching the user's reference (6 columns)
+            # Widths adjusted for alignment
+            f.write(
+                f"# {'Dist':>12} {'Legacy_In':>14} {'Legacy_Tot':>14} {'Prob_In':>14} {'Prob_Tot':>14} {'Count':>10}\n")
+            f.write(
+                f"# {'[Bohr]':>12} {'(Rel Rho)':>14} {'(Rel Rho)':>14} {'(Norm)':>14} {'(Norm)':>14} {'(Voxels)':>10}\n")
 
             for i in range(len(data.rdf_distance)):
                 dist = data.rdf_distance[i]
 
-                # Legacy (Density)
+                # Legacy (Relative Density)
                 leg_in = data.rdf_density_in_vol[i]
                 leg_tot = data.rdf_density_total[i]
 
@@ -247,4 +250,7 @@ class IOHandler:
                 prob_in = data.rdf_probability_in_vol[i]
                 prob_tot = data.rdf_probability_total[i]
 
-                f.write(f"{dist:13.5E} {leg_in:13.5E} {leg_tot:13.5E} {prob_in:13.5E} {prob_tot:13.5E}\n")
+                # Counts
+                count = int(data.rdf_counts[i])
+
+                f.write(f"{dist:13.5E} {leg_in:13.5E} {leg_tot:13.5E} {prob_in:13.5E} {prob_tot:13.5E} {count:10d}\n")

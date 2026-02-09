@@ -164,14 +164,14 @@ class Solver:
     def _finalize_results(self, acc):
         """
         Normalizes sums.
-        Calculates BOTH Legacy and Correct profiles if requested.
-        Always uses Correct profile for CT Ratio.
+        Calculates BOTH Legacy (Relative Density) and Correct (Probability) profiles.
         """
-        # 1. Retrieve Volume Element (dV)
+        # 1. Retrieve Volume Element (dV) and Grid Size
         dv = self.config.dv
+        nx, ny, nz = self.data.grid_data.shape
+        total_voxels = nx * ny * nz
 
         # 2. Convert Raw Density Sums -> Physical Charge (Electrons)
-        # Formula: Charge = Sum(Density) * dV
         total_electrons = acc['total_density'] * dv
         masked_electrons = acc['masked_density'] * dv
 
@@ -182,37 +182,46 @@ class Solver:
 
         # 3. Calculate CT Ratio (Using Physics-Correct Method)
         if total_electrons > 1e-12:
-            # CT Ratio = Fraction of charge OUTSIDE the donor/acceptor
             self.data.ct_ratio = 1.0 - (masked_electrons / total_electrons)
         else:
             self.data.ct_ratio = 0.0
 
-        # Store Total Weight
         self.data.total_weight = total_electrons
 
         # 4. Finalize RDF Profiles (If requested)
         if self.do_rdf:
             bins = acc['bins']
             self.data.rdf_distance = bins[:-1]
-            self.data.rdf_counts = acc['hist_counts']  # Store for debugging if needed
+            self.data.rdf_counts = acc['hist_counts']  # Store counts
 
             hist_counts = acc['hist_counts']
             hist_tot_mass = acc['hist_total_mass']
             hist_in_mass = acc['hist_in_vol_mass']
 
-            # A. LEGACY METRICS (Density)
-            # Formula: Mass / Voxel_Count
-            # "Average density per voxel in this shell"
+            # --- CALCULATE GLOBALS FOR NORMALIZATION ---
+            # Global Average Density = Sum(Rho) / Total_Voxels
+            global_sum = acc['total_density']
+            global_avg_rho = global_sum / total_voxels if total_voxels > 0 else 1.0
+
+            # A. LEGACY METRICS (Relative Density)
+            # Formula: (Local_Mass / Local_Count) / Global_Avg_Rho
+            # This makes the "average" density 1.0.
             with np.errstate(divide='ignore', invalid='ignore'):
-                self.data.rdf_density_total = np.nan_to_num(hist_tot_mass / hist_counts)
-                self.data.rdf_density_in_vol = np.nan_to_num(hist_in_mass / hist_counts)
+                # 1. Calculate Raw Local Average
+                local_avg_tot = hist_tot_mass / hist_counts
+                local_avg_in = hist_in_mass / hist_counts
+
+                # 2. Normalize by Global Average (To match Legacy code)
+                if global_avg_rho > 1e-18:
+                    self.data.rdf_density_total = np.nan_to_num(local_avg_tot / global_avg_rho)
+                    self.data.rdf_density_in_vol = np.nan_to_num(local_avg_in / global_avg_rho)
+                else:
+                    self.data.rdf_density_total = np.nan_to_num(local_avg_tot)
+                    self.data.rdf_density_in_vol = np.nan_to_num(local_avg_in)
 
             # B. CORRECT METRICS (Probability)
             # Formula: Mass / Total_System_Mass
-            # "Probability of finding electron in this shell"
-            # (Note: We use the raw density sum for normalization, dV cancels out)
             norm = acc['total_density']
-
             if norm > 1e-12:
                 self.data.rdf_probability_total = hist_tot_mass / norm
                 self.data.rdf_probability_in_vol = hist_in_mass / norm
