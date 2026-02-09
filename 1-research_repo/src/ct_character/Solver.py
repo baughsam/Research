@@ -162,25 +162,14 @@ class Solver:
         acc['hist_in_vol_mass'] += mass_in
 
     def _finalize_results(self, acc):
-        """
-        Normalizes sums.
-        Calculates BOTH Legacy (Relative Density) and Correct (Probability) profiles.
-        """
-        # 1. Retrieve Volume Element (dV) and Grid Size
         dv = self.config.dv
-        nx, ny, nz = self.data.grid_data.shape
-        total_voxels = nx * ny * nz
 
-        # 2. Convert Raw Density Sums -> Physical Charge (Electrons)
+        # 1. Calculate Single-Number CT Ratio
         total_electrons = acc['total_density'] * dv
         masked_electrons = acc['masked_density'] * dv
 
-        # DEBUG: Print integration results
-        print(f"  > Integration Check:")
-        print(f"    Total Charge in System: {total_electrons:.4f} electrons")
-        print(f"    Charge inside Mask:     {masked_electrons:.4f} electrons")
+        print(f"  > Integration Check: Total Charge = {total_electrons:.4f} e")
 
-        # 3. Calculate CT Ratio (Using Physics-Correct Method)
         if total_electrons > 1e-12:
             self.data.ct_ratio = 1.0 - (masked_electrons / total_electrons)
         else:
@@ -188,38 +177,23 @@ class Solver:
 
         self.data.total_weight = total_electrons
 
-        # 4. Finalize RDF Profiles (If requested)
+        # 2. Finalize RDF Profiles
         if self.do_rdf:
             bins = acc['bins']
             self.data.rdf_distance = bins[:-1]
-            self.data.rdf_counts = acc['hist_counts']  # Store counts
+            self.data.rdf_counts = acc['hist_counts']  # Required for printing
 
             hist_counts = acc['hist_counts']
             hist_tot_mass = acc['hist_total_mass']
             hist_in_mass = acc['hist_in_vol_mass']
 
-            # --- CALCULATE GLOBALS FOR NORMALIZATION ---
-            # Global Average Density = Sum(Rho) / Total_Voxels
-            global_sum = acc['total_density']
-            global_avg_rho = global_sum / total_voxels if total_voxels > 0 else 1.0
-
-            # A. LEGACY METRICS (Relative Density)
-            # Formula: (Local_Mass / Local_Count) / Global_Avg_Rho
-            # This makes the "average" density 1.0.
+            # A. LEGACY METRICS (Raw Average Density)
+            # Formula: Mass / Voxel_Count
             with np.errstate(divide='ignore', invalid='ignore'):
-                # 1. Calculate Raw Local Average
-                local_avg_tot = hist_tot_mass / hist_counts
-                local_avg_in = hist_in_mass / hist_counts
+                self.data.rdf_density_total = np.nan_to_num(hist_tot_mass / hist_counts)
+                self.data.rdf_density_in_vol = np.nan_to_num(hist_in_mass / hist_counts)
 
-                # 2. Normalize by Global Average (To match Legacy code)
-                if global_avg_rho > 1e-18:
-                    self.data.rdf_density_total = np.nan_to_num(local_avg_tot / global_avg_rho)
-                    self.data.rdf_density_in_vol = np.nan_to_num(local_avg_in / global_avg_rho)
-                else:
-                    self.data.rdf_density_total = np.nan_to_num(local_avg_tot)
-                    self.data.rdf_density_in_vol = np.nan_to_num(local_avg_in)
-
-            # B. CORRECT METRICS (Probability)
+            # B. CORRECT METRICS (Probability Mass)
             # Formula: Mass / Total_System_Mass
             norm = acc['total_density']
             if norm > 1e-12:

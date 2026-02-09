@@ -251,6 +251,6 @@ class IOHandler:
                 prob_tot = data.rdf_probability_total[i]
 
                 # Counts
-                count = int(data.rdf_counts[i])
+                count = int(data.rdf_counts[i]) if data.rdf_counts is not None else 0
 
                 f.write(f"{dist:13.5E} {leg_in:13.5E} {leg_tot:13.5E} {prob_in:13.5E} {prob_tot:13.5E} {count:10d}\n")
