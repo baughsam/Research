@@ -3,7 +3,7 @@ import sys
 from pathlib import Path
 import numpy as np
 
-# Import package modules
+# Package modules
 from ct_character.IOHandler import IOHandler
 from ct_character.Solver import Solver
 from ct_character.Exciton import ExcitonData, Configuration
@@ -72,7 +72,7 @@ def parse_input_file(filepath: Path):
 
 
 
-        return cube_file, shape_type, shape_params, output_prefix
+        return cube_file, shape_type, shape_params, output_prefix, do_rdf
 
     except Exception as e:
         print(f"Error parsing input file '{filepath}'. {e}")
