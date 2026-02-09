@@ -3,7 +3,7 @@ import sys
 from pathlib import Path
 import numpy as np
 
-# Import package modules
+# Package modules
 from ct_character.IOHandler import IOHandler
 from ct_character.Solver import Solver
 from ct_character.Exciton import ExcitonData, Configuration
@@ -11,12 +11,7 @@ from ct_character.Exciton import ExcitonData, Configuration
 
 def parse_input_file(filepath: Path):
     """
-    Parses 6-line master input file format.
-    Returns:
-        cube_file (str): Path to the .cube file
-        shape_type (str): 'EllipticalCylinder' or 'Parallelepiped'
-        shape_params (dict): Dependent on shape_type
-        output_prefix (str): Prefix for output files
+    Parses 7-line master input file format.
     """
     try:
         with open(filepath, 'r') as f:
@@ -33,6 +28,14 @@ def parse_input_file(filepath: Path):
 
         # Line 6: Output Prefix
         output_prefix = lines[5]
+
+        # Line 7 (Optional Toggle for INVOLUME file)
+        do_rdf = False
+        if len(lines) >= 7:
+            val = lines[6].lower()
+            if val in ['true', 't', 'yes', 'on', '1']:
+                do_rdf = True
+            print(f"  > In-Volume/RDF Analysis: {'ENABLED' if do_rdf else 'DISABLED'}")
 
         # Lines 3-5: Shape Dimensions
         shape_params = {}
@@ -69,17 +72,50 @@ def parse_input_file(filepath: Path):
 
 
 
-        return cube_file, shape_type, shape_params, output_prefix
+        return cube_file, shape_type, shape_params, output_prefix, do_rdf
 
     except Exception as e:
         print(f"Error parsing input file '{filepath}'. {e}")
         sys.exit(1)
 
 
+def print_banner():
+    ascii_art = r"""
+      ______ ______   ___                __            _
+     / ____//_  __/  /   |  ____  ____ _/ /_  _______ (_)____
+    / /      / /    / /| | / __ \/ __ `/ / / / / ___// // ___/
+   / /___   / /    / ___ |/ / / / /_/ / / /_/ (__  )/ (__  )
+   \____/  /_/    /_/  |_/_/ /_/\__,_/_/\__, /____//_/____/
+                                       /____/
+    """
+
+    # Width configuration for the box (60 matches the ASCII width roughly)
+    w = 62
+
+    print(ascii_art)
+    print("*" * w)
+    print("*" + "EXCITON CHARACTERIZATION SUITE".center(w - 2) + "*")
+    print("*" + "v1.0.0 (Python Port)".center(w - 2) + "*")
+    print("*" * w)
+    print("*" + " ".center(w - 2) + "*")
+    print("*" + "  Based on the original Fortran implementation by:".ljust(w - 2) + "*")
+    print("*" + "    Sahar Sharifzadeh & Pierre Darancet".ljust(w - 2) + "*")
+    print("*" + "    (The Molecular Foundry, Berkeley)".ljust(w - 2) + "*")
+    print("*" + " ".center(w - 2) + "*")
+    print("*" + "  Python Rewrite & Optimization by:".ljust(w - 2) + "*")
+    print("*" + "    Samson Baughman".ljust(w - 2) + "*")
+    print("*" + " ".center(w - 2) + "*")
+    print("*" * w)
+    print("*" + "  This software assumes the GNU General Public License.".ljust(w - 2) + "*")
+    print("*" + "  See http://www.gnu.org/copyleft/gpl.txt".ljust(w - 2) + "*")
+    print("*" * w)
+    print("\n")
+
 def main():
-    # 1. Parse Command Line Arguments
+    print_banner()
+    # Parse Command Line Arguments
     # This allows users to run: python main.py input.in
-    parser = argparse. ArgumentParser(description="Charge Transfer Analysis Code")
+    parser = argparse.ArgumentParser(description="Charge Transfer Analysis Code")
     parser.add_argument("input_file", type=str, help="Path to the master input file (e.g., INPUT_CTCALC.in")
     args = parser.parse_args()
 
@@ -91,7 +127,7 @@ def main():
     print(f"--- Starting CT analysis on {input_path} ---")
 
     # Parse Input File
-    cube_filename, shape_type, shape_params, out_prefix = parse_input_file(input_path)
+    cube_filename, shape_type, shape_params, out_prefix, do_rdf = parse_input_file(input_path)
 
     print(f"  Target Cube File: {cube_filename}")
     print(f"  Shape Model:      {shape_type}")
@@ -120,22 +156,21 @@ def main():
 
     # Initialize & Run Solver
     print("\n--- Initializing Solver ---")
-    solver = Solver(exciton_data, config)
+    solver = Solver(exciton_data, config, do_rdf_analysis=do_rdf)
 
     print("Running Physics Engine...")
     solver.solve()
     print("Analysis Complete.")
 
-    # --- ADD THIS BLOCK ---
-    print("DEBUG: Writing Loaded Density to file...")
-    debug_dens_file = f"{out_prefix}_DEBUG_DENSITY.cube"
+    # --- Used to Verify whether the cube file that was coming in was the same after processing. Use for debugging, if needed.---
+    #print("DEBUG: Writing Loaded Density to file...")
+    #debug_dens_file = f"{out_prefix}_DEBUG_DENSITY.cube"
     # We reuse write_mask_cube because it writes 3D grids to .cube format
-    IOHandler.write_mask_cube(debug_dens_file, config, exciton_data.grid_data)
+    # IOHandler.write_mask_cube(debug_dens_file, config, exciton_data.grid_data)
     # ----------------------
 
     # Visual Shape
     # Re-generate the mask solely for visualization
-    # (Since Solver uses it internally but doesn't store the boolean array)
     print("Generating Mask Visualization...")
     mask = solver.build_visual_mask()
 
@@ -148,13 +183,11 @@ def main():
     # We save them in the same folder as the input file
     output_dir = input_path.parent
     txt_out = output_dir / f"{out_prefix}_OUT.txt"
-    json_out = output_dir / f"{out_prefix}_stats.json"
 
     # Distance In-Volume File
     rdf_out = output_dir / f"{out_prefix}_1D-distance-involume.dat"
 
     IOHandler.write_report(str(txt_out), config, exciton_data)
-    IOHandler.write_report(str(json_out), config, exciton_data)
     IOHandler.write_distance_involume(str(rdf_out), exciton_data)
 
     print(f"\n--- Done ---")
