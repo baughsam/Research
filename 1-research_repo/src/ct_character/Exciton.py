@@ -3,54 +3,33 @@ from dataclasses import dataclass, field
 from ct_character.Shape import Shape
 from typing import Optional
 
-
 @dataclass
-class ExcitonData():
-    #self.variable: type # Variable from fortran code
+class ExcitonData:
+    """
+    Holds Exciton analysis results.
+    """
     # Raw Data
-    grid_data: np.ndarray # twopartcorr_INPUT
+    grid_data: np.ndarray
 
-    # Middle Work
-    density_inside_shape: Optional[np.ndarray] = None # twopartcorr_Volume
-    density_distance: Optional[np.ndarray] = None
-    total_weight: float = 0.0
+    # Key Results (Correct Physics)
+    total_weight: float = 0.0          # Total Charge (Electrons)
+    ct_ratio: Optional[float] = None   # Charge Transfer Ratio (0.0 - 1.0)
 
-    # Final Results
-    ct_ratio: Optional[float] = None          # INVOLUMEFRACTION
-    dipole_moment: Optional[np.ndarray] = None       # Dipole #[x, y, z]
-    quadrupole_moment: Optional[np.ndarray] = None   # Quadrupole # 3x3 Matrix
+    # --- RDF / In-Volume Data (Optional) ---
+    rdf_distance: Optional[np.ndarray] = None           # X-axis (Distance)
+    rdf_counts: Optional[np.ndarray] = None             # Number of voxels per shell (Needed for Legacy)
 
-    # Plotting Parameters
-    rdf_distance: Optional[np.ndarray] = None   # X-axis
-    rdf_counts: Optional[np.ndarray] = None     # Y-axis
+    # 1. LEGACY METRICS (Avg Density per Voxel)
+    # Matches original Fortran code output.
+    # Formula: Sum(rho) / Count_of_Voxels
+    rdf_density_total: Optional[np.ndarray] = None
+    rdf_density_in_vol: Optional[np.ndarray] = None
 
-    # --- 4. LEGACY METRICS (Fortran Style) ---
-    # These represent "Average Density per Voxel".
-    # CRITICAL: Summing these DOES NOT give the probability integral (missing 4*pi*r^2).
-    # Used to verify agreement with legacy Fortran code.
-    rdf_density_total: Optional[np.ndarray] = None  # Normalized Density (Total)
-    rdf_density_in_vol: Optional[np.ndarray] = None  # Normalized Density (In-Volume)
-    avg_r_fortran: Optional[float] = None  # Typically underestimates <r> (e.g. ~0.48 vs 1.5)
-
-    # --- 5. EXACT METRICS (Physics Style) ---
-    # These represent "Probability Mass".
-    # CRITICAL: Summing `rdf_probability_in_vol` gives the integral for Eq 9.
-    # These include the Jacobian volume element implicitly.
-    rdf_probability_total: Optional[np.ndarray] = None  # Probability Mass P(r) (Total)
-    rdf_probability_in_vol: Optional[np.ndarray] = None  # Probability Mass P(r) (In-Volume)`
-
-    # First Moments ,|x|>
-    # Average distance values (to replicate _OUT.txt in .f90 file)
-    avg_r: Optional[float] = None  # <|r|>
-    avg_a: Optional[float] = None  # <|a|>
-    avg_b: Optional[float] = None  # <|b|>
-    avg_c: Optional[float] = None  # <|c|>
-
-    # Second Moments <x^2>
-    avg_r2: Optional[float] = None
-    avg_a2: Optional[float] = None
-    avg_b2: Optional[float] = None
-    avg_c2: Optional[float] = None
+    # 2. CORRECT METRICS (Probability Mass)
+    # Physically rigorous probability distribution.
+    # Formula: Sum(rho) / Total_System_Charge
+    rdf_probability_total: Optional[np.ndarray] = None
+    rdf_probability_in_vol: Optional[np.ndarray] = None
 
 
 

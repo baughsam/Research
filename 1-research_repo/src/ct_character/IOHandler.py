@@ -3,7 +3,6 @@ from ct_character.Exciton import Configuration, ExcitonData
 from ct_character.Shape import EllipticalCylinder
 import ct_character.Shape as ShapeModule
 from pathlib import Path
-import json
 import os
 
 class IOHandler:
@@ -135,9 +134,8 @@ class IOHandler:
     @staticmethod
     def write_report(filename: str, config: Configuration, data: ExcitonData):
         """
-        Writes comprehensive summary file
+        Writes comprehensive summary file (Simplified for CT Ratio Only)
         """
-
         print(f"Writing summary to: {filename}...")
 
         with open(filename, 'w') as f:
@@ -146,68 +144,18 @@ class IOHandler:
             f.write("           Exciton Analysis Summary              \n")
             f.write("*************************************************\n\n")
 
-            # --- System Parameters --- *
+            # --- System Parameters ---
             nx, ny, nz = config.grid_shape
             f.write(f"  Grid dimensions:       {nx} x {ny} x {nz}\n")
             f.write(f"  Cell volume:           {config.total_volume:.6f} Bohr^3\n")
             f.write(f"  Voxel volume (dV):     {config.dv:.6e} Bohr^3\n")
             f.write(f"  Shape Model:           {type(config.shape).__name__}\n\n")
 
-            # --- CT & Wfn Norm --- #
+            # --- CT & Wfn Norm ---
             f.write("Key Results:\n")
-            f.write(f" Wavefunction Norm:      {data.total_weight:.6e} Bohr^3\n")
+            f.write(f" Wavefunction Norm:      {data.total_weight:.6e} electrons\n")
             if data.ct_ratio is not None:
                 f.write(f" Charge Transfer Ratio:  {data.ct_ratio:.6f}\n")
-
-            # --- Dipole --- #
-            if data.dipole_moment is not None:
-                # Calculate magnitude of dipole
-                dipole_mag = np.linalg.norm(data.dipole_moment)
-                f.write(f" Dipole Moment (Vector): {data.dipole_moment}\n")
-                f.write(f" Dipole Magnitude:       {dipole_mag:.6f} Bohr\n\n")
-
-                # -- MOMENTS --- #
-                f.write("First Moment Metrics (Average Distance):\n")
-                if data.avg_r is not None:
-                    f.write(f"  <|r|> (Mean Radius):    {data.avg_r:.6f} Bohr\n")
-                if data.avg_a is not None:
-                    f.write(f"  <|a|> (Proj. on A):     {data.avg_a:.6f} Bohr\n")
-                if data.avg_b is not None:
-                    f.write(f"  <|b|> (Proj. on B):     {data.avg_b:.6f} Bohr\n")
-                if data.avg_c is not None:
-                    f.write(f"  <|c|> (Proj. on C):     {data.avg_c:.6f} Bohr\n\n")
-
-                f.write("Second Moment Metrics:\n")
-                if data.avg_r2 is not None:
-                    f.write(f"  <|r^2|>:     {data.avg_r2:.6f} Bohr^2\n")
-                if data.avg_a2 is not None:
-                    f.write(f"  <|a^2|>:     {data.avg_a2:.6f} Bohr^2\n")
-                if data.avg_b2 is not None:
-                    f.write(f"  <|b^2|>:     {data.avg_b2:.6f} Bohr^2\n")
-                if data.avg_c2 is not None:
-                    f.write(f"  <|c^2|>:     {data.avg_c2:.6f} Bohr^2\n\n")
-
-
-            # --- ANISOTROPY --- #
-            if data.avg_a is not None and data.avg_b is not None:
-                ratio_ab = data.avg_a / data.avg_b if data.avg_a > 0 else 0
-                f.write("Anisotropy:\n")
-                f.write(f"  Ratio <|a|>/<|b|>:      {ratio_ab:.4f}\n")
-
-    @staticmethod
-    def write_json_stats(filename, config, data):
-        """
-        Writes JSON file w/ physical parameters for plotting purposes
-        """
-        stats = {
-            "ct_ratio": data.ct_ratio,
-            "dipole_magnitude": np.linalg.norm(data.dipole_moment),
-            "dipole_vector": data.dipole_moment.tolist(),  # JSON can't handle numpy arrays
-            "avg_radius": data.avg_r,
-            "anisotropy_ab": data.avg_a / data.avg_b
-        }
-        with open(filename.replace(".txt", ".json"), 'w') as f:
-            json.dump(stats, f, indent=4)
 
     @staticmethod
     def write_mask_cube(filename: str, config: Configuration, mask: np.ndarray):
@@ -270,9 +218,7 @@ class IOHandler:
     @staticmethod
     def write_distance_involume(filename: str, data: ExcitonData):
         """
-        Writes RDF analysis.
-        Columns 2-3: Legacy Density (Match Fortran).
-        Columns 4-5: Exact Probability Mass (Sum these for Eq 9).
+        Writes RDF analysis with BOTH Legacy (Density) and Correct (Probability) columns.
         """
         print(f"Writing RDF analysis to: {filename}...")
 
@@ -281,22 +227,19 @@ class IOHandler:
             return
 
         with open(filename, 'w') as f:
-            # Expanded Header
-            f.write(f"# {'Dist [Bohr]':>12} {'Rho_In_Vol':>14} {'Rho_Total':>14} "
-                    f"{'Prob_In_Vol':>14} {'Prob_Total':>14} {'Count':>10}\n")
+            # Clear Header explaining the columns
+            f.write(f"# {'Dist':>12} {'Legacy_In':>14} {'Legacy_Tot':>14} {'Prob_In':>14} {'Prob_Tot':>14}\n")
+            f.write(f"# {'[Bohr]':>12} {'(Avg Rho)':>14} {'(Avg Rho)':>14} {'(Norm)':>14} {'(Norm)':>14}\n")
 
             for i in range(len(data.rdf_distance)):
                 dist = data.rdf_distance[i]
 
-                # Legacy Density (For Fortran Comparison)
-                rho_in = data.rdf_density_in_vol[i]
-                rho_tot = data.rdf_density_total[i]
+                # Legacy (Density)
+                leg_in = data.rdf_density_in_vol[i]
+                leg_tot = data.rdf_density_total[i]
 
-                # Exact Probability Mass (For CT Calculation)
+                # Correct (Probability)
                 prob_in = data.rdf_probability_in_vol[i]
                 prob_tot = data.rdf_probability_total[i]
 
-                count = int(data.rdf_counts[i])
-
-                f.write(f"{dist:13.5E} {rho_in:13.5E} {rho_tot:13.5E} "
-                        f"{prob_in:13.5E} {prob_tot:13.5E} {count:10d}\n")
+                f.write(f"{dist:13.5E} {leg_in:13.5E} {leg_tot:13.5E} {prob_in:13.5E} {prob_tot:13.5E}\n")

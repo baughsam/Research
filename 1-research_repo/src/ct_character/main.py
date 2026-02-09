@@ -11,12 +11,7 @@ from ct_character.Exciton import ExcitonData, Configuration
 
 def parse_input_file(filepath: Path):
     """
-    Parses 6-line master input file format.
-    Returns:
-        cube_file (str): Path to the .cube file
-        shape_type (str): 'EllipticalCylinder' or 'Parallelepiped'
-        shape_params (dict): Dependent on shape_type
-        output_prefix (str): Prefix for output files
+    Parses 7-line master input file format.
     """
     try:
         with open(filepath, 'r') as f:
@@ -33,6 +28,14 @@ def parse_input_file(filepath: Path):
 
         # Line 6: Output Prefix
         output_prefix = lines[5]
+
+        # Line 7 (Optional Toggle for INVOLUME file)
+        do_rdf = False
+        if len(lines) >= 7:
+            val = lines[6].lower()
+            if val in ['true', 't', 'yes', 'on', '1']:
+                do_rdf = True
+            print(f"  > In-Volume/RDF Analysis: {'ENABLED' if do_rdf else 'DISABLED'}")
 
         # Lines 3-5: Shape Dimensions
         shape_params = {}
@@ -108,18 +111,11 @@ def print_banner():
     print("*" * w)
     print("\n")
 
-
-# --- Usage in main() ---
-# def main():
-#     print_banner()
-#     ...
-
-
 def main():
     print_banner()
     # Parse Command Line Arguments
     # This allows users to run: python main.py input.in
-    parser = argparse. ArgumentParser(description="Charge Transfer Analysis Code")
+    parser = argparse.ArgumentParser(description="Charge Transfer Analysis Code")
     parser.add_argument("input_file", type=str, help="Path to the master input file (e.g., INPUT_CTCALC.in")
     args = parser.parse_args()
 
@@ -131,7 +127,7 @@ def main():
     print(f"--- Starting CT analysis on {input_path} ---")
 
     # Parse Input File
-    cube_filename, shape_type, shape_params, out_prefix = parse_input_file(input_path)
+    cube_filename, shape_type, shape_params, out_prefix, do_rdf = parse_input_file(input_path)
 
     print(f"  Target Cube File: {cube_filename}")
     print(f"  Shape Model:      {shape_type}")
@@ -188,13 +184,11 @@ def main():
     # We save them in the same folder as the input file
     output_dir = input_path.parent
     txt_out = output_dir / f"{out_prefix}_OUT.txt"
-    json_out = output_dir / f"{out_prefix}_stats.json"
 
     # Distance In-Volume File
     rdf_out = output_dir / f"{out_prefix}_1D-distance-involume.dat"
 
     IOHandler.write_report(str(txt_out), config, exciton_data)
-    IOHandler.write_report(str(json_out), config, exciton_data)
     IOHandler.write_distance_involume(str(rdf_out), exciton_data)
 
     print(f"\n--- Done ---")
