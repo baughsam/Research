@@ -164,11 +164,13 @@ class Solver:
     def _finalize_results(self, acc):
         dv = self.config.dv
 
-        # 1. Calculate Single-Number CT Ratio
+        #  CT Ratio
         total_electrons = acc['total_density'] * dv
         masked_electrons = acc['masked_density'] * dv
 
-        print(f"  > Integration Check: Total Charge = {total_electrons:.4f} e")
+        print(f"  > Integration Check:")
+        print(f"    Total Charge: {total_electrons:.4f}")
+        print(f"    Mask Charge:  {masked_electrons:.4f}")
 
         if total_electrons > 1e-12:
             self.data.ct_ratio = 1.0 - (masked_electrons / total_electrons)
@@ -177,28 +179,34 @@ class Solver:
 
         self.data.total_weight = total_electrons
 
-        # 2. Finalize RDF Profiles
+        # RDF Finalization
         if self.do_rdf:
             bins = acc['bins']
             self.data.rdf_distance = bins[:-1]
-            self.data.rdf_counts = acc['hist_counts']  # Required for printing
+            self.data.rdf_counts = acc['hist_counts']
 
             hist_counts = acc['hist_counts']
-            hist_tot_mass = acc['hist_total_mass']
-            hist_in_mass = acc['hist_in_vol_mass']
+            hist_total = acc['hist_total_mass']
+            hist_in = acc['hist_in_vol_mass']
 
-            # A. LEGACY METRICS (Raw Average Density)
-            # Formula: Mass / Voxel_Count
+            # Legacy (Fortran) Density
             with np.errstate(divide='ignore', invalid='ignore'):
-                self.data.rdf_density_total = np.nan_to_num(hist_tot_mass / hist_counts)
-                self.data.rdf_density_in_vol = np.nan_to_num(hist_in_mass / hist_counts)
+                rho_tot = np.nan_to_num(hist_total / hist_counts)
+                rho_in = np.nan_to_num(hist_in / hist_counts)
 
-            # B. CORRECT METRICS (Probability Mass)
-            # Formula: Mass / Total_System_Mass
-            norm = acc['total_density']
-            if norm > 1e-12:
-                self.data.rdf_probability_total = hist_tot_mass / norm
-                self.data.rdf_probability_in_vol = hist_in_mass / norm
+            rho_norm_sum = np.sum(rho_tot)
+            if rho_norm_sum > 1e-12:
+                self.data.rdf_density_total = rho_tot / rho_norm_sum
+                self.data.rdf_density_in_vol = rho_in / rho_norm_sum
             else:
-                self.data.rdf_probability_total = hist_tot_mass
-                self.data.rdf_probability_in_vol = hist_in_mass
+                self.data.rdf_density_total = rho_tot
+                self.data.rdf_density_in_vol = rho_in
+
+            # Correct Probability
+            mass_norm_sum = acc['total_density']
+            if mass_norm_sum > 1e-12:
+                self.data.rdf_probability_total = hist_total / mass_norm_sum
+                self.data.rdf_probability_in_vol = hist_in / mass_norm_sum
+            else:
+                self.data.rdf_probability_total = hist_total
+                self.data.rdf_probability_in_vol = hist_in
