@@ -270,27 +270,33 @@ class IOHandler:
     @staticmethod
     def write_distance_involume(filename: str, data: ExcitonData):
         """
-        Writes the '1D-distance-involume' file matching Fortran output.
-        Columns: Distance, In-Volume-Rho, Total-Rho, Count
+        Writes RDF analysis.
+        Columns 2-3: Legacy Density (Match Fortran).
+        Columns 4-5: Exact Probability Mass (Sum these for Eq 9).
         """
         print(f"Writing RDF analysis to: {filename}...")
 
-        # Ensure data exists
-        if data.rdf_distance is None or data.rdf_in_volume_values is None:
-            print("Warning: RDF data missing. Skipping output.")
+        if data.rdf_distance is None:
+            print("Warning: RDF data missing.")
             return
 
         with open(filename, 'w') as f:
-            # Header matching Fortran style
-            f.write("# Distance [Bohr], 2-part corr (In-Vol), 2-part corr (Total), NbPoints\n")
+            # Expanded Header
+            f.write(f"# {'Dist [Bohr]':>12} {'Rho_In_Vol':>14} {'Rho_Total':>14} "
+                    f"{'Prob_In_Vol':>14} {'Prob_Total':>14} {'Count':>10}\n")
 
-            # Iterate through bins
             for i in range(len(data.rdf_distance)):
                 dist = data.rdf_distance[i]
-                rho_in = data.rdf_in_volume_values[i]
-                rho_tot = data.rdf_values[i]
+
+                # Legacy Density (For Fortran Comparison)
+                rho_in = data.rdf_density_in_vol[i]
+                rho_tot = data.rdf_density_total[i]
+
+                # Exact Probability Mass (For CT Calculation)
+                prob_in = data.rdf_probability_in_vol[i]
+                prob_tot = data.rdf_probability_total[i]
+
                 count = int(data.rdf_counts[i])
 
-                # Fortran Format: 3ES13.5, I10
-                # Python f-string equivalent: {val:13.5E}
-                f.write(f"{dist:13.5E} {rho_in:13.5E} {rho_tot:13.5E} {count:10d}\n")
+                f.write(f"{dist:13.5E} {rho_in:13.5E} {rho_tot:13.5E} "
+                        f"{prob_in:13.5E} {prob_tot:13.5E} {count:10d}\n")
