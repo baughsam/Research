@@ -156,7 +156,7 @@ def main():
 
     # Initialize & Run Solver
     print("\n--- Initializing Solver ---")
-    solver = Solver(exciton_data, config)
+    solver = Solver(exciton_data, config, do_rdf_analysis=do_rdf)
 
     print("Running Physics Engine...")
     solver.solve()
