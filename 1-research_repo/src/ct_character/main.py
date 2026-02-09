@@ -162,16 +162,15 @@ def main():
     solver.solve()
     print("Analysis Complete.")
 
-    # --- ADD THIS BLOCK ---
-    print("DEBUG: Writing Loaded Density to file...")
-    debug_dens_file = f"{out_prefix}_DEBUG_DENSITY.cube"
+    # --- Used to Verify whether the cube file that was coming in was the same after processing. Use for debugging, if needed.---
+    #print("DEBUG: Writing Loaded Density to file...")
+    #debug_dens_file = f"{out_prefix}_DEBUG_DENSITY.cube"
     # We reuse write_mask_cube because it writes 3D grids to .cube format
-    IOHandler.write_mask_cube(debug_dens_file, config, exciton_data.grid_data)
+    # IOHandler.write_mask_cube(debug_dens_file, config, exciton_data.grid_data)
     # ----------------------
 
     # Visual Shape
     # Re-generate the mask solely for visualization
-    # (Since Solver uses it internally but doesn't store the boolean array)
     print("Generating Mask Visualization...")
     mask = solver.build_visual_mask()
 
