@@ -3,7 +3,7 @@ from ct_character.Exciton import Configuration, ExcitonData
 from ct_character.Shape import EllipticalCylinder
 import ct_character.Shape as ShapeModule
 from pathlib import Path
-import os
+import datetime
 
 class IOHandler:
 
@@ -138,10 +138,15 @@ class IOHandler:
         """
         print(f"Writing summary to: {filename}...")
 
+        # Get current time
+        now = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
         with open(filename, 'w') as f:
             # --- HEADER ---
             f.write("*************************************************\n")
             f.write("           Exciton Analysis Summary              \n")
+            f.write("*************************************************\n")
+            f.write(f"  Date: {now}\n")  # <--- NEW LINE
             f.write("*************************************************\n\n")
 
             # --- System Parameters ---
