@@ -210,3 +210,10 @@ class Solver:
             else:
                 self.data.rdf_probability_total = hist_total
                 self.data.rdf_probability_in_vol = hist_in
+
+            # Calculate CDF
+            if self.do_rdf:
+                self.data.cdf_total = np.cumsum(self.data.rdf_probability_total)
+                self.data.cdf_in_vol = np.cumsum(self.data.rdf_probability_in_vol)
+
+                print(f"  > CDF Check: total Integrated Probability = {self.data.cdf_total[-1]:.4f}")
