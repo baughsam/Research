@@ -31,6 +31,10 @@ class ExcitonData:
     rdf_probability_total: Optional[np.ndarray] = None
     rdf_probability_in_vol: Optional[np.ndarray] = None
 
+    # Cumulative Density Function
+    # Cumulative Sum of Probability Mass
+    cdf_total: Optional[np.ndarray] = None
+    cdf_in_vol: Optional[np.ndarray] = None 
 
 
 

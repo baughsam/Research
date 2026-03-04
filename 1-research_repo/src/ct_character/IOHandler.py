@@ -223,7 +223,7 @@ class IOHandler:
     @staticmethod
     def write_distance_involume(filename: str, data: ExcitonData):
         """
-        Writes RDF analysis with Legacy, Probability, and Counts.
+        Writes RDF analysis with Legacy, Probability, CDF, and Counts.
         """
         print(f"Writing RDF analysis to: {filename}...")
 
@@ -232,25 +232,29 @@ class IOHandler:
             return
 
         with open(filename, 'w') as f:
-            # Header matching the user's reference (6 columns)
-            # Widths adjusted for alignment
+            # Headers
             f.write(
-                f"# {'Dist':>12} {'Legacy_In':>14} {'Legacy_Tot':>14} {'Prob_In':>14} {'Prob_Tot':>14} {'Count':>10}\n")
+                f"# {'Dist':>12} {'Legacy_In':>14} {'Legacy_Tot':>14} {'Prob_In':>14} {'Prob_Tot':>14} {'CDF_In':>14} {'CDF_Tot':>14} {'Count':>10}\n")
             f.write(
-                f"# {'[Bohr]':>12} {'(Rel Rho)':>14} {'(Rel Rho)':>14} {'(Norm)':>14} {'(Norm)':>14} {'(Voxels)':>10}\n")
+                f"# {'[Bohr]':>12} {'(Rel Rho)':>14} {'(Rel Rho)':>14} {'(Norm)':>14} {'(Norm)':>14} {'(Sum)':>14} {'(Sum)':>14} {'(Voxels)':>10}\n")
 
             for i in range(len(data.rdf_distance)):
                 dist = data.rdf_distance[i]
 
-                # Legacy (Relative Density)
+                # Legacy
                 leg_in = data.rdf_density_in_vol[i]
                 leg_tot = data.rdf_density_total[i]
 
-                # Correct (Probability)
+                # Probability
                 prob_in = data.rdf_probability_in_vol[i]
                 prob_tot = data.rdf_probability_total[i]
+
+                # CDF
+                cdf_in = data.cdf_in_vol[i] if data.cdf_in_vol is not None else 0.0
+                cdf_tot = data.cdf_total[i] if data.cdf_total is not None else 0.0
 
                 # Counts
                 count = int(data.rdf_counts[i]) if data.rdf_counts is not None else 0
 
-                f.write(f"{dist:13.5E} {leg_in:13.5E} {leg_tot:13.5E} {prob_in:13.5E} {prob_tot:13.5E} {count:10d}\n")
+                f.write(
+                    f"{dist:13.5E} {leg_in:13.5E} {leg_tot:13.5E} {prob_in:13.5E} {prob_tot:13.5E} {cdf_in:13.5E} {cdf_tot:13.5E} {count:10d}\n")
