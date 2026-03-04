@@ -223,7 +223,6 @@ class Solver:
             self.data.cdf_in_vol = np.cumsum(self.data.rdf_probability_in_vol)
 
             print(f"  > NEW Volume-Corrected CT Ratio: {self.data.ct_ratio:.6f}")
-
         else:
             # Fallback if RDF is not calculated: Pure 3D Volumetric Ratio inside shape
             if total_electrons > 1e-12:

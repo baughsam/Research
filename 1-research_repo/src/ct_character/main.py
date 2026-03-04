@@ -172,7 +172,6 @@ def main():
 
 
     ### --- Graph Generation (Toggled by --print-analysis-graph) --- ###
-
     if args.print_analysis_graph:
         if not do_rdf:
             print(
