@@ -183,46 +183,47 @@ def main():
             print(
                 "\nWarning: Cannot generate analysis graph because In-Volume/RDF analysis is DISABLED in the input file.")
         else:
-            print("\nGenerating Normalized Volume-Corrected Probability Density Graph...")
+            print("\nGenerating Normalized Volume-Corrected Probability Fraction Graph...")
 
             r = exciton_data.rdf_distance
             prob_in = exciton_data.rdf_probability_in_vol
             prob_tot = exciton_data.rdf_probability_total
             counts = exciton_data.rdf_counts
-            dv = config.dv
 
             valid = counts > 0
-            raw_in_shell = prob_in / dv
-            raw_tot_shell = prob_tot / dv
 
-            raw_dens_in_shell = np.zeros_like(raw_in_shell)
-            raw_dens_tot_shell = np.zeros_like(raw_tot_shell)
+            # Divide raw shell probability by voxel counts
+            dens_in_shell = np.zeros_like(prob_in)
+            dens_tot_shell = np.zeros_like(prob_tot)
 
-            raw_dens_in_shell[valid] = raw_in_shell[valid] / counts[valid]
-            raw_dens_tot_shell[valid] = raw_tot_shell[valid] / counts[valid]
+            dens_in_shell[valid] = prob_in[valid] / counts[valid]
+            dens_tot_shell[valid] = prob_tot[valid] / counts[valid]
 
-            cum_raw_in = np.cumsum(raw_dens_in_shell)
-            cum_raw_tot = np.cumsum(raw_dens_tot_shell)
+            # Cumulative sum
+            cum_dens_in = np.cumsum(dens_in_shell)
+            cum_dens_tot = np.cumsum(dens_tot_shell)
 
-            # Scale to plateau at 1.0/dV
-            expected_plateau_vol = 1.0 / dv
-            plateau_raw = cum_raw_tot[-1] if cum_raw_tot[-1] > 0 else 1.0
-            scale_factor_vol = expected_plateau_vol / plateau_raw
+            # Scale to plateau exactly at 1.0
+            expected_plateau_prob = 1.0
+            plateau_dens = cum_dens_tot[-1] if cum_dens_tot[-1] > 0 else 1.0
+            scale_factor_prob = expected_plateau_prob / plateau_dens
 
-            cum_raw_in = cum_raw_in * scale_factor_vol
-            cum_raw_tot = cum_raw_tot * scale_factor_vol
+            cum_dens_in = cum_dens_in * scale_factor_prob
+            cum_dens_tot = cum_dens_tot * scale_factor_prob
 
+            # --- PLOTTING ---
             fig, ax = plt.subplots(figsize=(8, 6))
-            ax.plot(r, cum_raw_tot, 'k--', linewidth=1.5, label='Total')
-            ax.plot(r, cum_raw_in, 'g-', linewidth=2.5, label='Inside Shape')
-            ax.set_title(f"Volumetric Density (Volume-Corrected): {out_prefix}", fontsize=14)
+            ax.plot(r, cum_dens_tot, 'k--', linewidth=1.5, label='Total')
+            ax.plot(r, cum_dens_in, 'r-', linewidth=2.5, label='Inside Shape')
+            ax.set_title(f"Probability Fraction (Volume-Corrected): {out_prefix}", fontsize=14)
             ax.set_xlabel("Distance [Bohr]", fontsize=12)
-            ax.set_ylabel("Scaled Cumulative Density [Bohr$^{-3}$]", fontsize=12)
+            ax.set_ylabel("Scaled Cumulative Fraction", fontsize=12)
             ax.set_xlim(0, np.max(r))
+            ax.set_ylim(0, 1.05)
             ax.grid(True, linestyle='--', alpha=0.6)
             ax.legend(loc='best')
 
-            graph_out = output_dir / f"{out_prefix}_Volume_Corrected_Density.png"
+            graph_out = output_dir / f"{out_prefix}_Volume_Corrected_Probability.png"
             plt.tight_layout()
             plt.savefig(graph_out, dpi=300)
             print(f"  > Saved Analysis Graph to: {graph_out}")
