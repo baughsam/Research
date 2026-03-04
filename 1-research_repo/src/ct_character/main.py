@@ -116,9 +116,12 @@ def main():
     parser = argparse.ArgumentParser(description="Charge Transfer Analysis Code")
     parser.add_argument("input_file", type=str, help="Path to the master input file (e.g., INPUT_CTCALC.in)")
 
-    # NEW ARGUMENT FLAG
+    # OPTIONAL FLAGS
     parser.add_argument("--print-analysis-graph", action='store_true',
                         help="Output the normalized volume-corrected probability density plot")
+    parser.add_argument("--print-mask-cube", action='store_true',
+                        help="Output a .cube file of the boolean shape mask for debugging/visualization")
+
     args = parser.parse_args()
 
     input_path = Path(args.input_file)
@@ -152,11 +155,15 @@ def main():
     solver.solve()
     print("Analysis Complete.")
 
-    print("Generating Mask Visualization...")
-    mask = solver.build_visual_mask()
-
-    debug_filename = f"{out_prefix}_MASK.cube"
-    IOHandler.write_mask_cube(str(debug_filename), config, mask)
+    # --- Debug Visualization Generation (Toggled by --print-mask-cube) ---
+    if args.print_mask_cube:
+        print("\nGenerating Mask Visualization...")
+        mask = solver.build_visual_mask()
+        debug_filename = f"{out_prefix}_MASK.cube"
+        IOHandler.write_mask_cube(str(debug_filename), config, mask)
+    else:
+        print("\nSkipping Mask Visualization (use --print-mask-cube to generate).")
+    # ---------------------------------------------------------------------
 
     # Output Results
     output_dir = input_path.parent
@@ -169,7 +176,6 @@ def main():
     print(f"\n--- Done ---")
     print(f"Summary written to: {txt_out}")
     print(f"RDF Data written to: {rdf_out}")
-
 
     ### --- Graph Generation (Toggled by --print-analysis-graph) --- ###
     if args.print_analysis_graph:
