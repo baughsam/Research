@@ -17,12 +17,19 @@ A Python package for analyzing Charge Transfer (CT) excitons in molecular crysta
 ```bash
 pip install "git+[https://github.com/baughsam/Research.git#subdirectory=1-research_repo](https://github.com/baughsam/Research.git#subdirectory=1-research_repo)"
 ```
+*(Note: Be sure to update the URL above to point to the new lab repository once deployed!)*
 
 ## Usage
-Once installed, the package provides a command-line tool. You can run it from any directory using an input file.
+Once installed, you can execute the physics engine from any directory using Python's module flag. This is the standard, most robust way to run the analysis:
 
 ```bash
 python -m ct_character.main path/to/input.in [--print-analysis-graph] [--print-mask-cube]
+```
+
+**Shortcut Command:**
+Once you are comfortable with the module structure above, the installation also provides a global terminal shortcut for convenience. You can run the exact same analysis by simply typing:
+```bash
+ct-analysis path/to/input.in [--print-analysis-graph] [--print-mask-cube]
 ```
 
 **Optional Flags:**
