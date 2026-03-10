@@ -1,0 +1,1 @@
+Based on this paper: [Phonon-Driven Femtosecond Dynamics of Excitons in Crystalline Pentacene from First Principles](https://journals-aps-org.ezproxy.bu.edu/prl/abstract/10.1103/PhysRevLett.132.126902#supplemental)
