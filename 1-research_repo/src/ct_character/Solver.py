@@ -34,7 +34,6 @@ class Solver:
 
             # B. Generate Coordinates
             # OPTIMIZATION: Only calculate 'R' (Radius) if we are doing binning.
-            # This saves significant CPU time when just calculating CT Ratio.
             if self.do_rdf:
                 X, Y, Z, R = self._generate_slice_coords(k, nz, xy_base_coords, z_step_vec)
             else:
@@ -47,9 +46,8 @@ class Solver:
             rho_inside = np.where(mask_slice, rho_slice, 0.0)
 
             # --- ACCUMULATION PHASE ---
-
-            # 1. CT Ratio (Always Run)
-            self._accumulate_ct_ratio(acc, rho_slice, rho_inside)
+            # 1. Raw Density sums (Always Run)
+            self._accumulate_raw_sums(acc, rho_slice, rho_inside)
 
             # 2. In-Volume Analysis (Conditional)
             if self.do_rdf:
@@ -95,9 +93,7 @@ class Solver:
             acc['bins'] = np.linspace(0, box_diag, nb_bins + 1)
 
             # Arrays for Accumulation
-            # 1. Counts (Needed for Legacy "Avg Density" calculation)
             acc['hist_counts'] = np.zeros(nb_bins)
-            # 2. Mass (Needed for Correct "Probability" calculation)
             acc['hist_total_mass'] = np.zeros(nb_bins)
             acc['hist_in_vol_mass'] = np.zeros(nb_bins)
 
@@ -136,24 +132,19 @@ class Solver:
         """Asks the Shape object to create boolean mask for this slice."""
         return self.config.shape.is_inside(X, Y, Z)
 
-    # --- ACCUMULATION METHODS ---
-
-    def _accumulate_ct_ratio(self, acc, rho_slice, rho_inside):
+    def _accumulate_raw_sums(self, acc, rho_slice, rho_inside):
         """Updates raw density running totals."""
         acc['total_density'] += np.sum(rho_slice)
         acc['masked_density'] += np.sum(rho_inside)
 
     def _accumulate_rdf(self, acc, R, rho_slice, rho_inside):
-        """
-        Updates RDF histograms.
-        Tracks BOTH counts (for Legacy) and mass (for Physics).
-        """
+        """Updates RDF histograms."""
         bins = acc['bins']
 
-        # 1. Histogram Voxel Counts (Legacy: "Avg Density per Voxel")
+        # 1. Histogram Voxel Counts
         counts, _ = np.histogram(R, bins=bins)
 
-        # 2. Histogram Density Mass (Physics: "Probability Mass")
+        # 2. Histogram Density Mass
         mass_tot, _ = np.histogram(R, bins=bins, weights=rho_slice)
         mass_in, _ = np.histogram(R, bins=bins, weights=rho_inside)
 
@@ -164,22 +155,18 @@ class Solver:
     def _finalize_results(self, acc):
         dv = self.config.dv
 
-        #  CT Ratio
+        # Legacy total weight (often outputs ~0.03 for probabilities due to *dv)
+        # Keeping this intact so the _OUT file doesn't break backwards compatibility
         total_electrons = acc['total_density'] * dv
         masked_electrons = acc['masked_density'] * dv
 
         print(f"  > Integration Check:")
-        print(f"    Total Charge: {total_electrons:.4f}")
-        print(f"    Mask Charge:  {masked_electrons:.4f}")
-
-        if total_electrons > 1e-12:
-            self.data.ct_ratio = 1.0 - (masked_electrons / total_electrons)
-        else:
-            self.data.ct_ratio = 0.0
+        print(f"    Raw Mass (Total): {acc['total_density']:.4f}")
+        print(f"    Raw Mass (Mask):  {acc['masked_density']:.4f}")
 
         self.data.total_weight = total_electrons
 
-        # RDF Finalization
+        # RDF Finalization and NEW CT RATIO MATH
         if self.do_rdf:
             bins = acc['bins']
             self.data.rdf_distance = bins[:-1]
@@ -189,7 +176,36 @@ class Solver:
             hist_total = acc['hist_total_mass']
             hist_in = acc['hist_in_vol_mass']
 
-            # Legacy (Fortran) Density
+            # Correct Probability (Shell Probabilities)
+            mass_norm_sum = acc['total_density']
+            if mass_norm_sum > 1e-12:
+                self.data.rdf_probability_total = hist_total / mass_norm_sum
+                self.data.rdf_probability_in_vol = hist_in / mass_norm_sum
+            else:
+                self.data.rdf_probability_total = hist_total
+                self.data.rdf_probability_in_vol = hist_in
+
+            # -----------------------------------------------------------------
+            # NEW: Calculate Volume-Corrected CT Ratio
+            # This directly calculates the plateau of the Volume-Corrected graph
+            # -----------------------------------------------------------------
+            valid = hist_counts > 0
+            dens_in_shell = np.zeros_like(self.data.rdf_probability_in_vol)
+            dens_tot_shell = np.zeros_like(self.data.rdf_probability_total)
+
+            dens_in_shell[valid] = self.data.rdf_probability_in_vol[valid] / hist_counts[valid]
+            dens_tot_shell[valid] = self.data.rdf_probability_total[valid] / hist_counts[valid]
+
+            sum_in = np.sum(dens_in_shell)
+            sum_tot = np.sum(dens_tot_shell)
+
+            if sum_tot > 1e-12:
+                # The plateau ratio!
+                self.data.ct_ratio = sum_in / sum_tot
+            else:
+                self.data.ct_ratio = 0.0
+
+            # Legacy (Fortran) Density fallback
             with np.errstate(divide='ignore', invalid='ignore'):
                 rho_tot = np.nan_to_num(hist_total / hist_counts)
                 rho_in = np.nan_to_num(hist_in / hist_counts)
@@ -202,18 +218,14 @@ class Solver:
                 self.data.rdf_density_total = rho_tot
                 self.data.rdf_density_in_vol = rho_in
 
-            # Correct Probability
-            mass_norm_sum = acc['total_density']
-            if mass_norm_sum > 1e-12:
-                self.data.rdf_probability_total = hist_total / mass_norm_sum
-                self.data.rdf_probability_in_vol = hist_in / mass_norm_sum
+            # Calculate Standard CDF
+            self.data.cdf_total = np.cumsum(self.data.rdf_probability_total)
+            self.data.cdf_in_vol = np.cumsum(self.data.rdf_probability_in_vol)
+
+            print(f"  > NEW Volume-Corrected CT Ratio: {self.data.ct_ratio:.6f}")
+        else:
+            # Fallback if RDF is not calculated: Pure 3D Volumetric Ratio inside shape
+            if total_electrons > 1e-12:
+                self.data.ct_ratio = masked_electrons / total_electrons
             else:
-                self.data.rdf_probability_total = hist_total
-                self.data.rdf_probability_in_vol = hist_in
-
-            # Calculate CDF
-            if self.do_rdf:
-                self.data.cdf_total = np.cumsum(self.data.rdf_probability_total)
-                self.data.cdf_in_vol = np.cumsum(self.data.rdf_probability_in_vol)
-
-                print(f"  > CDF Check: total Integrated Probability = {self.data.cdf_total[-1]:.4f}")
+                self.data.ct_ratio = 0.0

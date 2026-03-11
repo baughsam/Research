@@ -2,6 +2,7 @@ import argparse
 import sys
 from pathlib import Path
 import numpy as np
+import matplotlib.pyplot as plt
 
 # Package modules
 from ct_character.IOHandler import IOHandler
@@ -70,8 +71,6 @@ def parse_input_file(filepath: Path):
             print("  > Will attempt to use Shape defaults.")
             shape_params = {}
 
-
-
         return cube_file, shape_type, shape_params, output_prefix, do_rdf
 
     except Exception as e:
@@ -89,7 +88,6 @@ def print_banner():
                                        /____/
     """
 
-    # Width configuration for the box (60 matches the ASCII width roughly)
     w = 62
 
     print(ascii_art)
@@ -111,12 +109,19 @@ def print_banner():
     print("*" * w)
     print("\n")
 
+
 def main():
     print_banner()
-    # Parse Command Line Arguments
-    # This allows users to run: python main.py input.in
+
     parser = argparse.ArgumentParser(description="Charge Transfer Analysis Code")
-    parser.add_argument("input_file", type=str, help="Path to the master input file (e.g., INPUT_CTCALC.in")
+    parser.add_argument("input_file", type=str, help="Path to the master input file (e.g., INPUT_CTCALC.in)")
+
+    # OPTIONAL FLAGS
+    parser.add_argument("--print-analysis-graph", action='store_true',
+                        help="Output the normalized volume-corrected probability density plot")
+    parser.add_argument("--print-mask-cube", action='store_true',
+                        help="Output a .cube file of the boolean shape mask for debugging/visualization")
+
     args = parser.parse_args()
 
     input_path = Path(args.input_file)
@@ -126,35 +131,23 @@ def main():
 
     print(f"--- Starting CT analysis on {input_path} ---")
 
-    # Parse Input File
     cube_filename, shape_type, shape_params, out_prefix, do_rdf = parse_input_file(input_path)
 
     print(f"  Target Cube File: {cube_filename}")
     print(f"  Shape Model:      {shape_type}")
-    if shape_params:
-        print(f"  Params Found:     {list(shape_params.keys())}")
-    else:
-        print(f"  Params Found:     NONE (Will use Class Defaults)")
 
-    # Read Data
-    # We assume the .cube file is in the same folder as the input file,
-    # or we treat the path in the input file as relative to the execution location.
-    # Here we resolve it relative to the input file's directory if it's not absolute.
     cube_path = Path(cube_filename)
     if not cube_path.is_absolute():
         cube_path = input_path.parent / cube_filename
 
-    # IOHandler.read_cube returns the Config and ExcitonData objects
     try:
         config, exciton_data = IOHandler.read_cube(filename=str(cube_path),
                                                    shape_type=shape_type,
                                                    shape_params=shape_params)
-
     except FileNotFoundError:
         print(f"Critical Error: The cube file '{cube_path}' was not found.")
         sys.exit(1)
 
-    # Initialize & Run Solver
     print("\n--- Initializing Solver ---")
     solver = Solver(exciton_data, config, do_rdf_analysis=do_rdf)
 
@@ -162,29 +155,19 @@ def main():
     solver.solve()
     print("Analysis Complete.")
 
-    # --- Used to Verify whether the cube file that was coming in was the same after processing. Use for debugging, if needed.---
-    #print("DEBUG: Writing Loaded Density to file...")
-    #debug_dens_file = f"{out_prefix}_DEBUG_DENSITY.cube"
-    # We reuse write_mask_cube because it writes 3D grids to .cube format
-    # IOHandler.write_mask_cube(debug_dens_file, config, exciton_data.grid_data)
-    # ----------------------
+    # --- Debug Visualization Generation (Toggled by --print-mask-cube) ---
+    if args.print_mask_cube:
+        print("\nGenerating Mask Visualization...")
+        mask = solver.build_visual_mask()
+        debug_filename = f"{out_prefix}_MASK.cube"
+        IOHandler.write_mask_cube(str(debug_filename), config, mask)
+    else:
+        print("\nSkipping Mask Visualization (use --print-mask-cube to generate).")
+    # ---------------------------------------------------------------------
 
-    # Visual Shape
-    # Re-generate the mask solely for visualization
-    print("Generating Mask Visualization...")
-    mask = solver.build_visual_mask()
-
-    debug_filename = f"{out_prefix}_MASK.cube"
-    IOHandler.write_mask_cube(str(debug_filename), config, mask)
-    # -----------------------
-
-    # 5. Output Results
-    # construct output filenames based on the prefix read from input
-    # We save them in the same folder as the input file
+    # Output Results
     output_dir = input_path.parent
     txt_out = output_dir / f"{out_prefix}_OUT.txt"
-
-    # Distance In-Volume File
     rdf_out = output_dir / f"{out_prefix}_1D-distance-involume.dat"
 
     IOHandler.write_report(str(txt_out), config, exciton_data)
@@ -193,6 +176,59 @@ def main():
     print(f"\n--- Done ---")
     print(f"Summary written to: {txt_out}")
     print(f"RDF Data written to: {rdf_out}")
+
+    ### --- Graph Generation (Toggled by --print-analysis-graph) --- ###
+    if args.print_analysis_graph:
+        if not do_rdf:
+            print(
+                "\nWarning: Cannot generate analysis graph because In-Volume/RDF analysis is DISABLED in the input file.")
+        else:
+            print("\nGenerating Normalized Volume-Corrected Probability Fraction Graph...")
+
+            r = exciton_data.rdf_distance
+            prob_in = exciton_data.rdf_probability_in_vol
+            prob_tot = exciton_data.rdf_probability_total
+            counts = exciton_data.rdf_counts
+
+            valid = counts > 0
+
+            # Divide raw shell probability by voxel counts
+            dens_in_shell = np.zeros_like(prob_in)
+            dens_tot_shell = np.zeros_like(prob_tot)
+
+            dens_in_shell[valid] = prob_in[valid] / counts[valid]
+            dens_tot_shell[valid] = prob_tot[valid] / counts[valid]
+
+            # Cumulative sum
+            cum_dens_in = np.cumsum(dens_in_shell)
+            cum_dens_tot = np.cumsum(dens_tot_shell)
+
+            # Scale to plateau exactly at 1.0
+            expected_plateau_prob = 1.0
+            plateau_dens = cum_dens_tot[-1] if cum_dens_tot[-1] > 0 else 1.0
+            scale_factor_prob = expected_plateau_prob / plateau_dens
+
+            cum_dens_in = cum_dens_in * scale_factor_prob
+            cum_dens_tot = cum_dens_tot * scale_factor_prob
+
+            # --- PLOTTING ---
+            fig, ax = plt.subplots(figsize=(8, 6))
+            ax.plot(r, cum_dens_tot, 'k--', linewidth=1.5, label='Total')
+            ax.plot(r, cum_dens_in, 'r-', linewidth=2.5, label='Inside Shape')
+            ax.set_title(f"Probability Fraction (Volume-Corrected): {out_prefix}", fontsize=14)
+            ax.set_xlabel("Distance [Bohr]", fontsize=12)
+            ax.set_ylabel("Scaled Cumulative Fraction", fontsize=12)
+            ax.set_xlim(0, np.max(r))
+            ax.set_ylim(0, 1.05)
+            ax.grid(True, linestyle='--', alpha=0.6)
+            ax.legend(loc='best')
+
+            graph_out = output_dir / f"{out_prefix}_Volume_Corrected_Probability.png"
+            plt.tight_layout()
+            plt.savefig(graph_out, dpi=300)
+            print(f"  > Saved Analysis Graph to: {graph_out}")
+            plt.close()
+
 
 if __name__ == "__main__":
     main()
