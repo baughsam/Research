@@ -3,7 +3,21 @@ import numpy as np
 
 @dataclass
 class UpwindDifference2d:
+    # Initial 2D Array
+    initial_2d_array: np.ndarray | None
 
+    # Derivative Arrays
+    x_deriv_array: np.ndarray | None
+    y_deriv_array: np.ndarray | None
+    full_derivative_array: np.ndarray | None
+
+    # Spatial Difference
+    dx: float
+    dy: float
+
+    # Velocities
+    velocity_x: float = 0.0
+    velocity_y: float = 0.0
 
 
     def upwindDifference(self) -> np.ndarray:
@@ -19,14 +33,30 @@ class UpwindDifference2d:
         temp_x = np.zeros_like(self.initial_2d_array)
         temp_y = np.zeros_like(self.initial_2d_array)
 
-        # x differentiation
+        ### --- x differentiation --- ###
         if self.velocity_x > 0:
-            temp_x[1:, :] = (self.initial_2d_array[1:, :] - self.initial_2d_array[:-1,]) / self.dx
-            temp_x[:1, :] = (self.initial_2d_array[1:, :] - 0.0) / self.dx
+            temp_x[1:, :] = (self.initial_2d_array[1:, :] - self.initial_2d_array[:-1, :]) / self.dx
+            temp_x[0, :] = (self.initial_2d_array[0, :] - 0.0) / self.dx
             self.x_deriv_array = -self.velocity_x * temp_x
         elif self.velocity_x < 0:
             temp_x[:-1, :] = (self.initial_2d_array[1:, :] - self.initial_2d_array[:-1, :]) / self.dx
-            temp_x[-1:, :] = (self.initial_2d_array[1:, :] - 0.0) / self.dx
+            temp_x[-1, :] = (0.0 - self.initial_2d_array[-1, :]) / self.dx
             self.x_deriv_array = -self.velocity_x * temp_x
         else:
-            temp_x = self.initial_2d_array
+            self.x_deriv_array = temp_x
+
+        ### --- y differentiation --- ###
+        if self.velocity_y > 0:
+            temp_y[:, 1:] = (self.initial_2d_array[:, 1:] - self.initial_2d_array[:, :-1]) / self.dy
+            temp_y[:, 0] = (self.initial_2d_array[:, 0] - 0.0) / self.dy
+            self.y_deriv_array = -self.velocity_y * temp_y
+        elif self.velocity_y < 0:
+            temp_y[:, :-1] = (self.initial_2d_array[:, 1:] - self.initial_2d_array[:, :-1]) / self.dy
+            temp_y[:, -1] = (0.0 - self.initial_2d_array[:, -1]) / self.dy
+            self.y_deriv_array = -self.velocity_y * temp_y
+        else:
+            self.y_deriv_array = temp_y
+
+        self.full_derivative_array = self.x_deriv_array + self.y_deriv_array
+
+        return self.full_derivative_array
