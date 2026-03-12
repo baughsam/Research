@@ -30,6 +30,7 @@ class UpwindDifference2d:
             raise ValueError("Error: 'initial_2d_array' is not a 2D array.")
 
         # Initializing zero array for slice derivation
+        print("Initializing temp arrays.")
         temp_x = np.zeros_like(self.initial_2d_array)
         temp_y = np.zeros_like(self.initial_2d_array)
 
@@ -44,6 +45,7 @@ class UpwindDifference2d:
             self.x_deriv_array = -self.velocity_x * temp_x
         else:
             self.x_deriv_array = temp_x
+        print("x derivative complete.")
 
         ### --- y differentiation --- ###
         if self.velocity_y > 0:
@@ -56,7 +58,10 @@ class UpwindDifference2d:
             self.y_deriv_array = -self.velocity_y * temp_y
         else:
             self.y_deriv_array = temp_y
+        print("y derivative complete.")
 
         self.full_derivative_array = self.x_deriv_array + self.y_deriv_array
+        print("Upwind Difference Complete.")
+        print("Returning differentiated array.")
 
         return self.full_derivative_array
