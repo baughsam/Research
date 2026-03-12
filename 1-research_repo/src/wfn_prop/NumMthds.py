@@ -12,48 +12,58 @@ class UpwindDifference2d:
     velocity_y: float = 0.0
 
 
-    def upwindDifference(self) -> np.ndarray:
+    def upwindDifference(self, array_2d: np.ndarray) -> np.ndarray:
         # Raise Error: Initial array not input
-        if self.initial_2d_array is None:
+        if array_2d is None:
             raise ValueError("Error: 'initial_2d_array' is empty. Provide a 2D array before calculating.")
 
         # Raise Error: Initial array incorrect dimensions
-        if self.initial_2d_array.ndim != 2:
-            raise ValueError("Error: 'initial_2d_array' is not a 2D array.")
+        if array_2d.ndim != 2:
+            raise ValueError(f"Error: Expected a 2D array, but got a {array_2d.ndim}D array.")
 
         # Initializing zero array for slice derivation
         print("Initializing temp arrays.")
-        temp_x = np.zeros_like(self.initial_2d_array)
-        temp_y = np.zeros_like(self.initial_2d_array)
+        temp_x = np.zeros_like(array_2d)
+        temp_y = np.zeros_like(array_2d)
 
         ### --- x differentiation --- ###
         if self.velocity_x > 0:
-            temp_x[1:, :] = (self.initial_2d_array[1:, :] - self.initial_2d_array[:-1, :]) / self.dx
-            temp_x[0, :] = (self.initial_2d_array[0, :] - 0.0) / self.dx
-            self.x_deriv_array = -self.velocity_x * temp_x
+            temp_x[1:, :] = (array_2d[1:, :] - array_2d[:-1, :]) / self.dx
+            temp_x[0, :] = (array_2d[0, :] - 0.0) / self.dx
+            x_deriv_array = -self.velocity_x * temp_x
         elif self.velocity_x < 0:
-            temp_x[:-1, :] = (self.initial_2d_array[1:, :] - self.initial_2d_array[:-1, :]) / self.dx
-            temp_x[-1, :] = (0.0 - self.initial_2d_array[-1, :]) / self.dx
-            self.x_deriv_array = -self.velocity_x * temp_x
+            temp_x[:-1, :] = (array_2d[1:, :] - array_2d[:-1, :]) / self.dx
+            temp_x[-1, :] = (0.0 - array_2d[-1, :]) / self.dx
+            x_deriv_array = -self.velocity_x * temp_x
         else:
-            self.x_deriv_array = temp_x
+            x_deriv_array = temp_x
         print("x derivative complete.")
 
         ### --- y differentiation --- ###
         if self.velocity_y > 0:
-            temp_y[:, 1:] = (self.initial_2d_array[:, 1:] - self.initial_2d_array[:, :-1]) / self.dy
-            temp_y[:, 0] = (self.initial_2d_array[:, 0] - 0.0) / self.dy
-            self.y_deriv_array = -self.velocity_y * temp_y
+            temp_y[:, 1:] = (array_2d[:, 1:] - array_2d[:, :-1]) / self.dy
+            temp_y[:, 0] = (array_2d[:, 0] - 0.0) / self.dy
+            y_deriv_array = -self.velocity_y * temp_y
         elif self.velocity_y < 0:
-            temp_y[:, :-1] = (self.initial_2d_array[:, 1:] - self.initial_2d_array[:, :-1]) / self.dy
-            temp_y[:, -1] = (0.0 - self.initial_2d_array[:, -1]) / self.dy
-            self.y_deriv_array = -self.velocity_y * temp_y
+            temp_y[:, :-1] = (array_2d[:, 1:] - array_2d[:, :-1]) / self.dy
+            temp_y[:, -1] = (0.0 - array_2d[:, -1]) / self.dy
+            y_deriv_array = -self.velocity_y * temp_y
         else:
-            self.y_deriv_array = temp_y
+            y_deriv_array = temp_y
         print("y derivative complete.")
 
-        self.full_derivative_array = self.x_deriv_array + self.y_deriv_array
+        full_derivative_array = x_deriv_array + y_deriv_array
         print("Upwind Difference Complete.")
         print("Returning differentiated array.")
 
-        return self.full_derivative_array
+        return full_derivative_array
+
+@dataclass
+class RungeKutta4_2d:
+    # Initial Array
+    initial_2d_array: np.ndarray | None
+
+    # Timestep
+    dt: float
+
+    def RK4(self, ) -> np.ndarray:
