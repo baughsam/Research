@@ -111,8 +111,3 @@ class RungeKutta4:
                 history.append(np.copy(n_current))
 
         return history
-
-
-
-
-    def RK4(self, ) -> np.ndarray:
