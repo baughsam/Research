@@ -1,4 +1,4 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 import numpy as np
 
 @dataclass
@@ -59,11 +59,60 @@ class UpwindDifference2d:
         return full_derivative_array
 
 @dataclass
-class RungeKutta4_2d:
-    # Initial Array
-    initial_2d_array: np.ndarray | None
+class RungeKutta4:
+    # User Inputs
+    spatial_solver: object       # UpwindDifference2d instance
+    total_sim_time: float
+    courant_number: float = 0.5  # Default Safety factor for stability
 
-    # Timestep
-    dt: float
+    # Calculated Attributes
+    dt: float = field(init=False)
+    num_steps: int = field(init=False)
+
+    def __post_init__(self):
+        """
+        Auto-calculates safe time step
+        """
+        # Extract physics parameters from Upwind object
+        dx = self.spatial_solver.dx
+        dy = self.spatial_solver.dy
+        vx = abs(self.spatial_solver.velocity_x)
+        vy = abs(self.spatial_solver.velocity_y)
+
+        # Calculates max safe time step using CFL Condition
+        self.dt = self.courant_number / ((vx/dx) + (vy/dy) + 1e-15)
+        # Calculate how many total loop iterations are needed for the simulation
+        self.num_steps = int(self.total_sim_time / self.dt)
+        print(f"Calculated dt: {self.dt:.4f} fs | Total Steps: {self.num_steps}")
+
+    def solve(self, n_initial: np.ndarray, save_interval: int = 10) -> np.ndarray:
+        """
+        Executes the explicit RK4 time integration.
+        """
+        n_current = np.copy(n_initial)
+        history = [np.copy(n_current)]
+
+        for step in range(self.num_steps):
+            k1 = self.spatial_solver.upwindDifference(n_current)
+
+            n_temp1 = n_current + k1 * (self.dt / 2.0)
+            k2 = self.spatial_solver.upwindDifference(n_temp1)
+
+            n_temp2 = n_current + k2 * (self.dt / 2.0)
+            k3 = self.spatial_solver.upwindDifference(n_temp2)
+
+            n_temp3 = n_current + k3 * self.dt
+            k4 = self.spatial_solver.upwindDifference(n_temp3)
+
+            n_current = n_current + (self.dt / 6.0) * (k1 + 2 * k2 + 2 * k3 + k4)
+
+            # Save frames for the animation
+            if (step + 1) % save_interval == 0:
+                history.append(np.copy(n_current))
+
+        return history
+
+
+
 
     def RK4(self, ) -> np.ndarray:
