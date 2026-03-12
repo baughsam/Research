@@ -3,14 +3,6 @@ import numpy as np
 
 @dataclass
 class UpwindDifference2d:
-    # Initial 2D Array
-    initial_2d_array: np.ndarray | None
-
-    # Derivative Arrays
-    x_deriv_array: np.ndarray | None
-    y_deriv_array: np.ndarray | None
-    full_derivative_array: np.ndarray | None
-
     # Spatial Difference
     dx: float
     dy: float
