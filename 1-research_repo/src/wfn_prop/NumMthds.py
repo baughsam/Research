@@ -1,5 +1,6 @@
 from dataclasses import dataclass, field
 import numpy as np
+from wfn_prop.k_scat import decay
 
 @dataclass
 class UpwindDifference2d:
@@ -15,7 +16,7 @@ class UpwindDifference2d:
     def upwindDifference(self, array_2d: np.ndarray) -> np.ndarray:
         # Raise Error: Initial array not input
         if array_2d is None:
-            raise ValueError("Error: 'initial_2d_array' is empty. Provide a 2D array before calculating.")
+            raise ValueError("Error: 'array_2d' is empty. Provide a 2D array before calculating.")
 
         # Raise Error: Initial array incorrect dimensions
         if array_2d.ndim != 2:
@@ -64,6 +65,7 @@ class RungeKutta4:
     spatial_solver: object       # UpwindDifference2d instance
     total_sim_time: float
     courant_number: float = 0.5  # Default Safety factor for stability
+    scattering_solver: object = None
 
     # Calculated Attributes
     dt: float = field(init=False)
@@ -93,21 +95,29 @@ class RungeKutta4:
         history = [np.copy(n_current)]
 
         for step in range(self.num_steps):
-            k1 = self.spatial_solver.upwindDifference(n_current)
+
+            k1_scat = self.scattering_solver.calc_scattering(n_current) if self.scattering_solver else 0.0
+            k1 = self.spatial_solver.upwindDifference(n_current) + k1_scat
+
 
             n_temp1 = n_current + k1 * (self.dt / 2.0)
-            k2 = self.spatial_solver.upwindDifference(n_temp1)
+            k2_scat = self.scattering_solver.calc_scattering(n_temp1) if self.scattering_solver else 0.0
+            k2 = self.spatial_solver.upwindDifference(n_temp1) + k2_scat
 
             n_temp2 = n_current + k2 * (self.dt / 2.0)
-            k3 = self.spatial_solver.upwindDifference(n_temp2)
+            k3_scat = self.scattering_solver.calc_scattering(n_temp2) if self.scattering_solver else 0.0
+            k3 = self.spatial_solver.upwindDifference(n_temp2) + k3_scat
 
             n_temp3 = n_current + k3 * self.dt
-            k4 = self.spatial_solver.upwindDifference(n_temp3)
+            k4_scat = self.scattering_solver.calc_scattering(n_temp3) if self.scattering_solver else 0.0
+            k4 = self.spatial_solver.upwindDifference(n_temp3) + k4_scat
 
             n_current = n_current + (self.dt / 6.0) * (k1 + 2 * k2 + 2 * k3 + k4)
 
             # Save frames for the animation
             if (step + 1) % save_interval == 0:
                 history.append(np.copy(n_current))
+            else:
+                print("History not being saved")
 
         return history

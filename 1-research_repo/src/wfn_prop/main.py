@@ -1,6 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from wfn_prop.NumMthds import RungeKutta4, UpwindDifference2d
+from wfn_prop.k_scat import decay
 
 # Gaussian Distribution Function
 def gaussian_dist_2d(x_pos, y_pos, spread_x, spread_y, amplitude, center_x, center_y):
@@ -56,12 +57,15 @@ X_flat = X_grid.flatten()
 Y_flat = Y_grid.flatten()
 
 # 2. Setup Physics and Run RK4
+#Choose K_scat
+scattering_obj = decay(scat_time=15)
+
 print("Setting up simulation...")
 # Give it some velocity so it moves!
-advection_solver = UpwindDifference2d(dx=delta_x, dy=delta_y, velocity_x=0, velocity_y=3)
+advection_solver = UpwindDifference2d(dx=delta_x, dy=delta_y, velocity_x=1, velocity_y=1)
 
 # Simulate for 15 femtoseconds
-time_integrator = RungeKutta4(spatial_solver=advection_solver, total_sim_time=15.0)
+time_integrator = RungeKutta4(spatial_solver=advection_solver, total_sim_time=15.0, scattering_solver=scattering_obj)
 
 # Run the integration and get the history of frames
 print("Running RK4 Integration...")

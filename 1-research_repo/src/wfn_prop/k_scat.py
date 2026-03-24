@@ -19,7 +19,7 @@ class decay(Kscat):
 
         #Communication is key!
         print("Calculating decay...")
-        decay_scat_array = - time_const * array_2d
+        decay_scat_array = -time_const * array_2d
 
         return decay_scat_array
 
