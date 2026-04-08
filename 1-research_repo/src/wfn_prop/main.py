@@ -1,7 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
-from wfn_prop.NumMthds import RungeKutta4, UpwindDifference2d
-from wfn_prop.k_scat import Decay, FickDiff
+from wfn_prop.NumMthds import RungeKutta4, UpwindDifference2d, UpwindDifference3d
+from wfn_prop.k_scat import Decay, FickDiff, PhononScat
 
 # Gaussian Distribution Function
 def gaussian_dist_2d(x_pos, y_pos, spread_x, spread_y, amplitude, center_x, center_y):
@@ -34,16 +34,26 @@ sigma_y = 5
 # Amplitude
 amplitude = 1
 
-# Initialize Grid
-occupation_matrix = np.empty((grid_x, grid_y))
+# Initialize 2D Grid
+occupation_matrix_2d = np.empty((grid_x, grid_y))
+
+# Momentum Space (currently an arbitrary 3x3 dimensional array)
+Nq = 3
+
+# Velocity Arrays (would be calculated form the exciton dispersion)
+v_x_array = np.array([-1.0, 0.0, 1.0])
+v_y_array = np.array([0.0, 0.0, 0.0])
+
+# Initialize 3D array
+occupation_matrix_3d = np.empty((grid_x, grid_y, Nq))
 
 for i in range(grid_x):
     for j in range(grid_y):
         x_i = i * delta_x
         y_i = j * delta_y
-        occupation_matrix[i,j] = gaussian_dist_2d(x_pos=x_i, y_pos=y_i, spread_x=sigma_x, spread_y=sigma_y, amplitude=amplitude, center_x=x_0, center_y=y_0)
+        occupation_matrix_3d[i,j, 2] = gaussian_dist_2d(x_pos=x_i, y_pos=y_i, spread_x=sigma_x, spread_y=sigma_y, amplitude=amplitude, center_x=x_0, center_y=y_0)
 
-# After occupation_matrix
+
 
 # 1. Recreate the X and Y grids for plotting (matching your loop logic)
 X_grid = np.empty((grid_x, grid_y))
@@ -58,18 +68,23 @@ Y_flat = Y_grid.flatten()
 
 # 2. Setup Physics and Run RK4
 #Choose K_scat
-scattering_obj = Decay(scat_time=15)
+#scattering_obj = Decay(scat_time=15)
 
 print("Setting up simulation...")
-# Give it some velocity so it moves!
-advection_solver = UpwindDifference2d(dx=delta_x, dy=delta_y, velocity_x=1, velocity_y=1)
+advection_solver = UpwindDifference3d(dx=delta_x, dy=delta_y, vel_x=v_x_array, vel_y=v_y_array) #UpwindDifference2d(dx=delta_x, dy=delta_y, velocity_x=1, velocity_y=1)
+
+# Fake a scattering matrix where State 2 (Right) decays into State 1 (Stationary)
+W_matrix = np.zeros((Nq, Nq))
+W_matrix[2, 2] = -0.05  # Losing excitons from State 2
+W_matrix[2, 1] = +0.05  # Gaining them in State 1
+scattering_obj = PhononScat(transition_matrix=W_matrix)
 
 # Simulate for 15 femtoseconds
-time_integrator = RungeKutta4(spatial_solver=advection_solver, total_sim_time=15.0, scattering_solver=scattering_obj)
+time_integrator = RungeKutta4(spatial_solver=advection_solver, total_sim_time=40.0, scattering_solver=scattering_obj)
 
 # Run the integration and get the history of frames
 print("Running RK4 Integration...")
-frames = time_integrator.solve(occupation_matrix, save_interval=2)
+frames = time_integrator.solve(occupation_matrix_3d, save_interval=2)
 
 # 3. Visualization Loop
 print("Simulation complete. Launching visualization...")
@@ -85,8 +100,15 @@ colorbar_created = False
 
 for i, frame in enumerate(frames):
     ax.clear()
+    # 3D Tensor Addition
+    # Sum accross the Q-axis (axis=2) to get the physical 2D density map
+    physical_density = np.sum(frame, axis=2)
 
-    frame_flat = frame.flatten()
+    #frame_flat = physical_density.flatten()
+
+    # Slices the 3D tensor to ONLY look at State 2 (Moving Right)
+    q_slice_density = frame[:, :, 1]
+    frame_flat = q_slice_density.flatten()
 
     # We add vmin=0.0 and vmax=amplitude to strictly lock the physics color scale
     sc = ax.scatter(X_flat, Y_flat, c=frame_flat, cmap='magma', marker='s', s=10, vmin=0.0, vmax=amplitude)

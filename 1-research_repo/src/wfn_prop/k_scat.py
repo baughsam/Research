@@ -46,3 +46,21 @@ class FickDiff(Kscat):
         diff_scat_array[:, 1:-1] += d2n_dy2
 
         return self.D_coeff * diff_scat_array
+
+@dataclass
+class PhononScat(Kscat):
+    # Shape: (Nq, Nq)
+    # Precalculated 2D Matrix where element [i,j] is the rate of scattering from state i to state j
+    transition_matrix: np.ndarray
+
+    def calc_scattering(self, array_3d: np.ndarray) -> np.ndarray:
+        # array_3d has shape: (Nx, Ny, Nq)
+        # We are multiplying the transition matrix against the last axis (Nq)
+        # Using Einstein Notation and a method called .einsum
+        # 'ij' is the transition matrix (from i to j)
+        # 'xyi' is the 3D tensor (x, y, initial state i)
+        # 'xyj' is the output 3D tensor (x, y, final state j)
+
+        scattered_array = np.einsum('ij, xyi -> xyj', self.transition_matrix, array_3d)
+
+        return scattered_array

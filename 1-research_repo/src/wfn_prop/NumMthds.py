@@ -7,12 +7,12 @@ class UpwindDifference3d:
     dx: float
     dy: float
 
-    vel_x = np.ndarray
-    vel_y = np.ndarray
+    vel_x: np.ndarray
+    vel_y: np.ndarray
 
     def upwindDifference(self, array_3d:np.ndarray) -> np.ndarray:
         # Raise Error: Initial array not input
-        if array_2d is None:
+        if array_3d is None:
             raise ValueError("Error: 'array_3d' is empty. Provide a 3D array before calculating.")
 
         # Raise Error: Initial array incorrect dimensions
@@ -40,7 +40,7 @@ class UpwindDifference3d:
                 temp_x[1:, :] = (slice_2d[1:, :] - slice_2d[:-1, :]) / self.dx
                 temp_x[0, :] = (slice_2d[0, :] - 0.0) / self.dx
                 x_deriv = -vx * temp_x
-            if vx < 0:
+            elif vx < 0:
                 temp_x[:-1, :] = (slice_2d[1:, :] - slice_2d[:-1, :]) / self.dx
                 temp_x[-1, :] = (0.0 - slice_2d[-1, :]) / self.dx
                 x_deriv = -vx * temp_x
@@ -143,11 +143,17 @@ class RungeKutta4:
         # Extract physics parameters from Upwind object
         dx = self.spatial_solver.dx
         dy = self.spatial_solver.dy
-        vx = abs(self.spatial_solver.velocity_x)
-        vy = abs(self.spatial_solver.velocity_y)
+
+        if hasattr(self.spatial_solver, 'vel_x'):
+            vx_max = np.max(np.abs(self.spatial_solver.vel_x))
+            vy_max = np.max(np.abs(self.spatial_solver.vel_y))
+        else:
+            vx_max = abs(self.spatial_solver.velocity_x)
+            vy_max = abs(self.spatial_solver.velocity_y)
+
 
         # Calculates max safe time step using CFL Condition
-        self.dt = self.courant_number / ((vx/dx) + (vy/dy) + 1e-15)
+        self.dt = self.courant_number / ((vx_max/dx) + (vy_max/dy) + 1e-15)
         # Calculate how many total loop iterations are needed for the simulation
         self.num_steps = int(self.total_sim_time / self.dt)
         print(f"Calculated dt: {self.dt:.4f} fs | Total Steps: {self.num_steps}")
