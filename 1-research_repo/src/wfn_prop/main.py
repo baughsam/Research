@@ -1,7 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from wfn_prop.NumMthds import RungeKutta4, UpwindDifference2d
-from wfn_prop.k_scat import decay
+from wfn_prop.k_scat import Decay, FickDiff
 
 # Gaussian Distribution Function
 def gaussian_dist_2d(x_pos, y_pos, spread_x, spread_y, amplitude, center_x, center_y):
@@ -58,7 +58,7 @@ Y_flat = Y_grid.flatten()
 
 # 2. Setup Physics and Run RK4
 #Choose K_scat
-scattering_obj = decay(scat_time=15)
+scattering_obj = Decay(scat_time=15)
 
 print("Setting up simulation...")
 # Give it some velocity so it moves!

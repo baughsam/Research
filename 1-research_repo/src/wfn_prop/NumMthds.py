@@ -1,6 +1,71 @@
 from dataclasses import dataclass, field
 import numpy as np
-from wfn_prop.k_scat import decay
+
+#New dataclass to take into account Q space
+@dataclass
+class UpwindDifference3d:
+    dx: float
+    dy: float
+
+    vel_x = np.ndarray
+    vel_y = np.ndarray
+
+    def upwindDifference(self, array_3d:np.ndarray) -> np.ndarray:
+        # Raise Error: Initial array not input
+        if array_2d is None:
+            raise ValueError("Error: 'array_3d' is empty. Provide a 3D array before calculating.")
+
+        # Raise Error: Initial array incorrect dimensions
+        if array_3d.ndim != 3:
+            raise ValueError(f"Error: Expected a 3D array, but got a {array_3d.ndim}D array.")
+
+        #Initialize array
+        full_derivative_array = np.zeros_like(array_3d)
+
+        # Nq ~ size of 3d dimension in given array
+        Nq = array_3d.shape[2]
+
+        # Loop over momentum states. Slice space.
+        for q in range(Nq):
+            vx = self.vel_x[q]
+            vy = self.vel_y[q]
+
+            # Extract 3D spatial slice for specific Q-state
+            slice_2d = array_3d[:, :, q]
+            temp_x = np.zeros_like(slice_2d)
+            temp_y = np.zeros_like(slice_2d)
+
+            ### --- x differentiation --- ###
+            if vx > 0:
+                temp_x[1:, :] = (slice_2d[1:, :] - slice_2d[:-1, :]) / self.dx
+                temp_x[0, :] = (slice_2d[0, :] - 0.0) / self.dx
+                x_deriv = -vx * temp_x
+            if vx < 0:
+                temp_x[:-1, :] = (slice_2d[1:, :] - slice_2d[:-1, :]) / self.dx
+                temp_x[-1, :] = (0.0 - slice_2d[-1, :]) / self.dx
+                x_deriv = -vx * temp_x
+            else:
+                x_deriv = temp_x
+            print("x derivative complete.")
+
+            ### --- y differentiation --- ###
+            if vy> 0:
+                temp_y[:, 1:] = (slice_2d[:, 1:] - slice_2d[:, :-1]) / self.dy
+                temp_y[:, 0] = (slice_2d[:, 0] - 0.0) / self.dy
+                y_deriv = -vy * temp_y
+            elif vy < 0:
+                temp_y[:, :-1] = (slice_2d[:, 1:] - slice_2d[:, :-1]) / self.dy
+                temp_y[:, -1] = (0.0 - slice_2d[:, -1]) / self.dy
+                y_deriv = -vy * temp_y
+            else:
+                y_deriv = temp_y
+            print("y derivative complete.")
+
+            # Put spatial derivative back into 3D tensor
+            full_derivative_array[:, :, q] = x_deriv + y_deriv
+
+        return full_derivative_array
+
 
 @dataclass
 class UpwindDifference2d:
@@ -62,10 +127,10 @@ class UpwindDifference2d:
 @dataclass
 class RungeKutta4:
     # User Inputs
-    spatial_solver: object       # UpwindDifference2d instance
+    spatial_solver: object            # UpwindDifference2d instance
     total_sim_time: float
-    courant_number: float = 0.5  # Default Safety factor for stability
-    scattering_solver: object = None
+    courant_number: float = 0.5       # Default Safety factor for stability
+    scattering_solver: object = None  # scattering objects in k_scat.py
 
     # Calculated Attributes
     dt: float = field(init=False)
