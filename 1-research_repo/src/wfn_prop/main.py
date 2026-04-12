@@ -10,6 +10,47 @@ def gaussian_dist_2d(x_pos, y_pos, spread_x, spread_y, amplitude, center_x, cent
     dist_funct = amplitude * np.exp( term1 + term2 )
     return dist_funct
 
+def initialize_tranisiton_matrix(energies_eV: np.ndarray, temp_K: float, coupling_constant: float) -> np.ndarray:
+    """
+    Generates a transition matrix based on Fermi's Golden Rule and Bose-Einstein statistics.
+
+    :param energies_eV: 1D array of energies in eV of length Nq
+    :param temp_K: Temperature in Kelvin
+    :param coupling_constant: The base transition rate |M_0|^2 / hbar in units of (fs^-1)
+    :return: Time-Independent Transition Matrix
+    """
+
+    Nq = len(energies_eV)
+    k_B = const.k * 6.242e18 # eV/K
+    k_B_T = k_B * temp_K
+
+    # Energy Difference Matrix
+    # Broadcasting creates size (Nq, Nq) matrix
+    dE = energies_eV[None, :] - energies_eV[:, None]
+
+    #Bose-Einstein Statistics
+    with np.errstate(divide='ignore', invalid='ignore'):
+        N_phonons = 1.0 /  (np.exp(np.abs(dE) / k_B_T) - 1.0)
+
+    #Initialize Scattering Matrix (empty)
+    W = np.zeros((Nq, Nq))
+
+    # Fermi's Golden Rule (Absorption and Emission)
+    # Upward Transition (Absorption)
+    W[dE > 0] = coupling_constant * N_phonons[dE > 0]
+    # Downward Transition (Emission)
+    W[dE < 0] = coupling_constant * N_phonons[dE < 0] + 1 # +1 = Spontaneous Emission due to  Heisenburg Uncetainty Principle (delta_E*delta_t >= hbar/2)
+
+    #Particle Conversation (Dealing w/ the Diagonal)
+    # - Excitons cannot scatter into their own states
+    np.fill_diagonal(W, 0.0)
+    # - Diagonal W[i,i] must represent the toal rate of excitons leaving state i
+    drain_rate = -np.sum(W, axis=1) # Sums everything across a row # np.ndarray
+    np.fill_diagonal(W, drain_rate)
+
+    return W
+
+
 # Initializing Gaussian Wavepack on N_x x N_y sized grid
 # Real Space Dimension in nanometers
 length_x = 40
