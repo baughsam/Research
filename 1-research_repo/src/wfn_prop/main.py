@@ -44,7 +44,7 @@ def initialize_tranisiton_matrix(energies_eV: np.ndarray, temp_K: float, couplin
     #Particle Conversation (Dealing w/ the Diagonal)
     # - Excitons cannot scatter into their own states
     np.fill_diagonal(W, 0.0)
-    # - Diagonal W[i,i] must represent the toal rate of excitons leaving state i
+    # - Diagonal W[i,i] must represent the total rate of excitons leaving state i
     drain_rate = -np.sum(W, axis=1) # Sums everything across a row # np.ndarray
     np.fill_diagonal(W, drain_rate)
 
