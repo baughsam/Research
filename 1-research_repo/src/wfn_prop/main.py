@@ -50,6 +50,32 @@ def initialize_tranisiton_matrix(energies_eV: np.ndarray, temp_K: float, couplin
 
     return W
 
+def generate_energy_array_harmonic(Nx: int, Ny: int, max_energy_eV: float=0.1) -> np.ndarray:
+    if Nx != Ny:
+        raise ValueError("Q_x != Q_y")
+    num_of_q_states = Nx * Ny
+
+    qx = np.linspace(-1, 1, Nx)
+    qy = np.linspace(-1, 1, Ny)
+
+    # Build the 2D Phase Space
+    # meshgrid takes our 1D axes and creates a full 2D coordinate system
+    Qx, Qy = np.meshgrid(qx, qy) # Creates 2 3x3 matrices
+
+    # Calculate Energy (Parabolic Dispersion: E = Qx^2 + Qy^2)
+    # The center (0,0) will be 0.0 eV. The edges will be higher energy.
+    R_squared = Qx ** 2 + Qy ** 2
+
+    # Normalize the parabola so the highest energy corners exactly equal max_energy_eV
+    max_R_squared = np.max(R_squared)
+    E_2D = (R_squared / max_R_squared) * max_energy_eV
+
+    # Collapse Phase Space to a 1D list of states
+    # This turns the (Nx, Ny) array into a flat array of length (Nx * Ny)
+    E_1D = E_2D.flatten()
+
+    return E_1D
+
 
 # Initializing Gaussian Wavepack on N_x x N_y sized grid
 # Real Space Dimension in nanometers
