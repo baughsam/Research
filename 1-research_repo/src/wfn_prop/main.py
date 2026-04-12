@@ -1,4 +1,5 @@
 import numpy as np
+import scipy.constants as const
 import matplotlib.pyplot as plt
 from wfn_prop.NumMthds import RungeKutta4, UpwindDifference2d, UpwindDifference3d
 from wfn_prop.k_scat import Decay, FickDiff, PhononScat
