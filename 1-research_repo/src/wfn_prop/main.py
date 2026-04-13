@@ -128,8 +128,7 @@ occupation_matrix_2d = np.empty((grid_x, grid_y))
 Nq = 3
 
 # Velocity Arrays (would be calculated form the exciton dispersion)
-v_x_array = np.array([-1.0, 0.0, 1.0])
-v_y_array = np.array([0.0, 0.0, 0.0])
+generate_velocity_arrays_tight_binding(Nx=Nx, Ny=Ny, max_velocity=1.0) # v ~ nm/fs
 
 # Initialize 3D array
 occupation_matrix_3d = np.empty((grid_x, grid_y, Nq))
