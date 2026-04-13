@@ -50,6 +50,25 @@ def initialize_tranisiton_matrix(energies_eV: np.ndarray, temp_K: float, couplin
     np.fill_diagonal(W, drain_rate)
 
     return W
+def generate_velocity_arrays_tight_binding(Nx: int, Ny: int, max_velocity: int = 1.0) -> np.ndarray:
+    if Nx != Ny:
+        raise ValueError("Q_x != Q_y")
+    num_of_q_states = Nx * Ny
+
+    qx = np.linspace(-np.pi, np.pi, Nx)
+    qy = np.linspace(-np.pi, np.pi, Ny)
+
+    Qx, Qy = np.meshgrid(qx, qy)
+
+    Vx = np.sin(Qx) * max_velocity
+    Vy = np.sin(Qy) * max_velocity
+
+    Vx_1D = Vx.flatten()
+    Vy_1D = Vy.flatten()
+
+    return Vx_1D, Vy_1D
+
+
 
 def generate_energy_array_harmonic(Nx: int, Ny: int, max_energy_eV: float=0.1) -> np.ndarray:
     if Nx != Ny:
