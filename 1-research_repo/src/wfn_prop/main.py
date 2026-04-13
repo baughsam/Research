@@ -141,10 +141,9 @@ Y_flat = Y_grid.flatten()
 print("Setting up simulation...")
 advection_solver = UpwindDifference3d(dx=delta_x, dy=delta_y, vel_x=v_x_array, vel_y=v_y_array) #UpwindDifference2d(dx=delta_x, dy=delta_y, velocity_x=1, velocity_y=1)
 
-# Fake a scattering matrix where State 2 (Right) decays into State 1 (Stationary)
-W_matrix = np.zeros((Nq, Nq))
-W_matrix[2, 2] = -0.05  # Losing excitons from State 2
-W_matrix[2, 1] = +0.05  # Gaining them in State 1
+
+
+
 scattering_obj = PhononScat(transition_matrix=W_matrix)
 
 # Simulate for 15 femtoseconds
