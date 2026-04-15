@@ -103,12 +103,12 @@ def generate_energy_array_harmonic(Nx: int, Ny: int, max_energy_eV: float=0.1) -
 
 # Initializing Gaussian Wavepack on N_x x N_y sized grid
 # Real Space Dimension in nanometers
-length_x = 40
-length_y = 40
+length_x = 100#40
+length_y = 100#40
 
 # Grid Dimensions
-grid_x = 100
-grid_y = 100
+grid_x = 250#100
+grid_y = 250#100
 
 # Simulation Distances
 delta_x = length_x / (grid_x-1)
@@ -170,7 +170,7 @@ W_matrix = initialize_tranisiton_matrix(energies_eV=energy_array, temp_K=300, co
 scattering_obj = PhononScat(transition_matrix=W_matrix)
 
 # Simulate for X femtoseconds
-time_integrator = RungeKutta4(spatial_solver=advection_solver, total_sim_time=100.0, scattering_solver=scattering_obj)
+time_integrator = RungeKutta4(spatial_solver=advection_solver, total_sim_time=50.0, scattering_solver=scattering_obj)
 
 # Run the integration and get the history of frames
 print("Running RK4 Integration...")
@@ -236,49 +236,15 @@ for i, frame in enumerate(frames):
 plt.ioff()
 plt.show()
 
-"""# 3. Visualization Loop
-print("Simulation complete. Launching visualization...")
+# Post-Processing & Data Extraction
+print("\nVisualization closed. Executing data extraction pipeline(s)...")
 
-save_interval = 2
-physical_time_per_frame = time_integrator.dt * save_interval
-
-plt.ion()
-# Made the figure slightly wider (7, 6) to comfortably fit the new colorbar
-fig, ax = plt.subplots(figsize=(7, 6))
-
-colorbar_created = False
-
-for i, frame in enumerate(frames):
-    ax.clear()
-    # 3D Tensor Addition
-    # Sum across the Q-axis (axis=2) to get the physical 2D density map
-    physical_density = np.sum(frame, axis=2)
-
-    frame_flat = physical_density.flatten()
-
-    # Slices the 3D tensor to only look at a single Q-state
-    #q_slice_density = frame[:, :, 1]
-    #frame_flat = q_slice_density.flatten()
-
-    # We add vmin=0.0 and vmax=amplitude to strictly lock the physics color scale
-    sc = ax.scatter(X_flat, Y_flat, c=frame_flat, cmap='magma', marker='s', s=10)
-
-    # Draw the colorbar ONLY on the very first frame
-    if not colorbar_created:
-        cbar = fig.colorbar(sc, ax=ax)
-        cbar.set_label("Exciton Density")
-        colorbar_created = True
-
-    current_time_fs = i * physical_time_per_frame
-
-    ax.set_title(f"Ballistic Transport | Time: {current_time_fs:.3f} fs")
-    ax.set_xlabel("X Position (nm)")
-    ax.set_ylabel("Y Position (nm)")
-    ax.set_xlim(0, length_x)
-    ax.set_ylim(0, length_y)
-
-    plt.draw()
-    plt.pause(0.05)
-
-plt.ioff()
-plt.show()"""
+extracted_D = extract_diffusion_constant(
+    frames=frames,
+    dt=time_integrator.dt,
+    save_interval=save_interval,
+    x_grid=X_grid,
+    y_grid=Y_grid,
+    cutoff_fraction=0.5,
+    show_plot=True
+)
