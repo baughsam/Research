@@ -3,6 +3,7 @@ import scipy.constants as const
 import matplotlib.pyplot as plt
 from wfn_prop.NumMthds import RungeKutta4, UpwindDifference2d, UpwindDifference3d
 from wfn_prop.k_scat import Decay, FickDiff, PhononScat
+from wfn_prop.analysis import extract_diffusion_constant
 
 # Gaussian Distribution Function
 def gaussian_dist_2d(x_pos, y_pos, spread_x, spread_y, amplitude, center_x, center_y):
