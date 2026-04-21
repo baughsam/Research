@@ -100,6 +100,30 @@ def generate_energy_array_harmonic(Nx: int, Ny: int, max_energy_eV: float=0.1) -
 
     return E_1D
 
+def generate_energy_array_tight_binding(Nx: int, Ny: int, half_bandwidth_eV: float=0.1) -> np.ndarray:
+    """
+    Generates a 2D tight-binding energy dispersion mapped to a 1D array.
+    E(k) = Delta * (1 - cos(kx)) + Delta * (1 - cos(ky))
+    """
+    if Nx != Ny:
+        raise ValueError("Nx != Ny")
+
+    # Use the exact same Brillouin zone bounds as your velocity array!
+    qx = np.linspace(-np.pi, np.pi, Nx)
+    qy = np.linspace(-np.pi, np.pi, Ny)
+
+    # Build the 2D Phase Space
+    Qx, Qy = np.meshgrid(qx, qy)
+
+    # Calculate Energy using the Tight-Binding dispersion
+    # Center (0,0) is 0.0 eV. Corners (+/- pi, +/- pi) are maximum energy (4 * Delta).
+    E_2D = half_bandwidth_eV * (1 - np.cos(Qx)) + half_bandwidth_eV * (1 - np.cos(Qy))
+
+    # Collapse Phase Space to a 1D list of states
+    E_1D = E_2D.flatten()
+
+    return E_1D
+
 
 # Initializing Gaussian Wavepack on N_x x N_y sized grid
 # Real Space Dimension in nanometers
