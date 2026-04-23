@@ -30,6 +30,9 @@ def initialize_tranisiton_matrix(energies_eV: np.ndarray, temp_K: float, couplin
     # Broadcasting creates size (Nq, Nq) matrix
     dE = energies_eV[None, :] - energies_eV[:, None]
 
+    # Eliminate floating point noise for degenerate states
+    dE[np.abs(dE) < 1e-10] = 0.0
+
     #Bose-Einstein Statistics
     with np.errstate(divide='ignore', invalid='ignore'):
         N_phonons = 1.0 /  (np.exp(np.abs(dE) / k_B_T) - 1.0)
