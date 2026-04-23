@@ -90,4 +90,122 @@ def extract_diffusion_constant(frames: list, dt: float, save_interval: int,
 
     return D_extracted
 
+def visualize_simulation(frames: list, dt: float, save_interval: int,
+                         length_x: float, length_y: float, grid_x: int, grid_y: int,
+                         right_panel_mode: str = 'qgrid', target_state: int=None,
+                         q_Nx: int = None, q_Ny: int = None):
+    """
+    Animates the simulation history with Total Density on the left,
+    and either a specific Q-slice or the total Q-grid distribution on the right
+    :param frames: List of frames from completed simulation.
+    :param dt: time step
+    :param save_interval: interval at which frames are saved
+    :param length_x: spatial length in x
+    :param length_y: spatial length in y
+    :param grid_x: discretization of field in x
+    :param grid_y: discretization of field in y
+    :param q_Nx:
+    :param q_Ny:
+    :return: visualization of the simulation
+    """
+
+    # Validation / Setup
+    Nq = frames[0].shape[2] # Extract the number of momentum states
+
+    if right_panel_mode == 'slice':
+        if target_state is None or target_state < 0 or target_state >= Nq:
+            raise ValueError(f"WARNING: Invalid target_state. Your simulation has {Nq} momentum slices. "
+                             f"Please specify a target_state between 0 and {Nq - 1}.")
+
+    elif right_panel_mode == 'qgrid':
+        # Auto-calculate Q-grid dimenstions assuming a square grid if not provided
+        if q_Nx is None or q_Ny is None:
+            q_Nx = int(np.sqrt(Nq))
+            q_Ny = Nq // q_Nx
+            if q_Nx * q_Ny != Nq:
+                raise ValueError("could not auto-determine Q-grid dimensions. Please provide q_Nx and q_Ny.")
+
+    else:
+        raise ValueError("right_panel_mode must be either 'qgrid' or 'slice'.")
+
+
+    # Recreate Spatial Grids
+    delta_x = length_x / (grid_x - 1)
+    delta_y = length_y / (grid_y - 1)
+
+    X_grid = np.empty((grid_x, grid_y))
+    Y_grid = np.empty((grid_x, grid_y))
+    for i in range(grid_x):
+        for j in range(grid_y):
+            X_grid[i, j] = i * delta_x
+            Y_grid[i, j] = j * delta_y
+
+    X_flat = X_grid.flatten()
+    Y_flat = Y_grid.flatten()
+
+    # Initialize Plotting
+    physical_time_per_frame = dt * save_interval
+
+    plt.ion()
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(14, 6))
+    colorbar_created = False
+
+    # Animation Loop
+    for i, frame in enumerate(frames):
+        ax1.clear()
+        ax2.clear()
+
+        current_time_fs = i * physical_time_per_frame
+
+        # Left Panel: Total PHysical Density
+        total_density = np.sum(frame, axis=2)
+        total_flat = total_density.flatten()
+
+        sc1 = ax1.scatter(X_flat, Y_flat, c=total_flat, cmap='magma', marker='s', s=15)
+
+        ax1.set_title(f"Total Exciton Density | Time: {current_time_fs:.3f} fs")
+        ax1.set_xlabel("X Position (nm)")
+        ax1.set_ylabel("Y Position (nm)")
+        ax1.set_xlim(0, length_x)
+        ax1.set_ylim(0, length_y)
+
+        # Right Panel: qgrid or qslice
+        if right_panel_mode == 'slice':
+            slice_density = frame[:, :, target_state]
+            slice_flat = slice_density.flatten()
+
+            sc2 = ax2.scatter(X_flat, Y_flat, c=slice_flat, cmap='viridis', marker='s', s=15)
+            ax2.set_title(f"Phase Space Slice [State {target_state}]")
+            ax2.set_xlabel("X Position (nm)")
+            ax2.set_ylabel("Y Position (nm)")
+            ax2.set_xlim(0, length_x)
+            ax2.set_ylim(0, length_y)
+
+        elif right_panel_mode == 'qgrid':
+            momentum_distribution_1d = np.sum(frame, axis=(0, 1))
+            momentum_distribution_2d = momentum_distribution_1d.reshape((q_Nx, q_Ny))
+
+            sc2 = ax2.imshow(momentum_distribution_2d.T, origin='lower', cmap='plasma',
+                             extent=[-np.pi, np.pi, -np.pi, np.pi], interpolation='nearest')
+
+            ax2.set_title("Momentum Space (Q-Grid)")
+            ax2.set_xlabel("qx")
+            ax2.set_ylabel("qy")
+
+        # Colorbars
+        if not colorbar_created:
+            cbar1 = fig.colorbar(sc1, ax=ax1, fraction=0.046, pad=0.04)
+            cbar1.set_label("Total Mass")
+
+            cbar2 = fig.colorbar(sc2, ax=ax2, fraction=0.046, pad=0.04)
+            cbar2.set_label("Slice Mass" if right_panel_mode == 'slice' else "Q-State Mass")
+
+            colorbar_created = True
+
+        plt.draw()
+        plt.pause(0.05)
+
+    plt.ioff()
+    plt.show()
+
 
