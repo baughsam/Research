@@ -1,6 +1,56 @@
 from dataclasses import dataclass, field
 import numpy as np
 
+
+@dataclass
+class CentralDifference3d:
+    dx: float
+    dy: float
+
+    vel_x: np.ndarray
+    vel_y: np.ndarray
+
+    def upwindDifference(self, array_3d: np.ndarray) -> np.ndarray:
+        """
+        Calculates the 2nd-Order Central Difference for spatial advection.
+        Produces zero numerical diffusion.
+        (Method name preserved for RK4 compatibility)
+        """
+        if array_3d is None or array_3d.ndim != 3:
+            raise ValueError("Error: Expected a 3D array.")
+
+        full_derivative_array = np.zeros_like(array_3d)
+        Nq = array_3d.shape[2]
+
+        for q in range(Nq):
+            vx = self.vel_x[q]
+            vy = self.vel_y[q]
+
+            slice_2d = array_3d[:, :, q]
+            temp_x = np.zeros_like(slice_2d)
+            temp_y = np.zeros_like(slice_2d)
+
+            ### --- 2nd-Order X Differentiation --- ###
+            # Central difference for the interior points: (n[i+1] - n[i-1]) / 2dx
+            temp_x[1:-1, :] = (slice_2d[2:, :] - slice_2d[:-2, :]) / (2 * self.dx)
+            # Fallback to 1st-order at the strict boundaries to prevent index out-of-bounds
+            temp_x[0, :] = (slice_2d[1, :] - slice_2d[0, :]) / self.dx
+            temp_x[-1, :] = (slice_2d[-1, :] - slice_2d[-2, :]) / self.dx
+
+            x_deriv = -vx * temp_x
+
+            ### --- 2nd-Order Y Differentiation --- ###
+            temp_y[:, 1:-1] = (slice_2d[:, 2:] - slice_2d[:, :-2]) / (2 * self.dy)
+            temp_y[:, 0] = (slice_2d[:, 1] - slice_2d[:, 0]) / self.dy
+            temp_y[:, -1] = (slice_2d[:, -1] - slice_2d[:, -2]) / self.dy
+
+            y_deriv = -vy * temp_y
+
+            # Assemble full derivative
+            full_derivative_array[:, :, q] = x_deriv + y_deriv
+
+        return full_derivative_array
+
 #New dataclass to take into account Q space
 @dataclass
 class UpwindDifference3d:
