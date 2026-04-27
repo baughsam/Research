@@ -54,6 +54,43 @@ def initialize_tranisiton_matrix(energies_eV: np.ndarray, temp_K: float, couplin
     np.fill_diagonal(W, drain_rate)
 
     return W
+
+
+def initialize_transition_matrix_RTA(energies_eV: np.ndarray, temp_K: float, coupling_constant: float) -> np.ndarray:
+    """
+    Validation matrix strictly enforcing the Relaxation Time Approximation (RTA).
+    Forces a constant scattering rate and perfectly thermalized momentum randomization.
+    """
+    Nq = len(energies_eV)
+    k_B = const.k * 6.242e18 # eV/K
+    k_B_T = k_B * temp_K
+
+    # 1. Calculate the exact, constant macroscopic scattering rate from the derivation
+    E_c = 0.05 # eV
+    tau_0 = 1.0 / coupling_constant
+    tau_T = tau_0 * np.tanh(E_c / (2 * k_B_T))
+    Gamma_T = 1.0 / tau_T  # This is the exact constant drain rate for all states
+
+    # 2. Calculate the Thermal Equilibrium Distribution P(E)
+    boltzmann_factors = np.exp(-energies_eV / k_B_T)
+    P_eq = boltzmann_factors / np.sum(boltzmann_factors) # Normalized probabilities
+
+    # 3. Build the RTA Transition Matrix
+    W = np.zeros((Nq, Nq))
+    for i in range(Nq):
+        for j in range(Nq):
+            if i != j:
+                # Scatter into state j proportional to its thermal weight.
+                # The denominator (1 - P_eq[i]) ensures that the sum of the row
+                # strictly equals Gamma_T even though excitons cannot scatter into their own state.
+                W[i, j] = Gamma_T * (P_eq[j] / (1.0 - P_eq[i]))
+
+    # 4. Set the diagonal (drain rate) to perfectly conserve particles
+    drain_rate = -np.sum(W, axis=1)
+    np.fill_diagonal(W, drain_rate)
+
+    return W
+
 def generate_velocity_arrays_tight_binding(Nx: int, Ny: int, max_velocity: float = 1.0):
     if Nx != Ny:
         raise ValueError("Nx != Ny")
