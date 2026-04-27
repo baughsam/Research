@@ -40,6 +40,10 @@ def initialize_tranisiton_matrix(energies_eV: np.ndarray, temp_K: float, couplin
     #Initialize Scattering Matrix (empty)
     W = np.zeros((Nq, Nq))
 
+    # Normalization of the transition rate to ensure that our discretization
+    # of a continuous momentum space doesn't change the physics
+    base_rate = coupling_constant / Nq
+
     # Fermi's Golden Rule (Absorption and Emission)
     # Upward Transition (Absorption)
     W[dE > 0] = coupling_constant * N_phonons[dE > 0]
