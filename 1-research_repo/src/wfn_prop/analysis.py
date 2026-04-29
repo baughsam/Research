@@ -50,6 +50,16 @@ def export_diffusion_gif(frames, dt, save_interval, length_x, length_y, grid_x, 
 
         return sc,
 
+    # 4. Compile and Save
+    # frames=len(frames) tells it how many times to run the update function
+    ani = animation.FuncAnimation(fig, update, frames=len(frames), blit=False)
+
+    # fps (Frames Per Second) controls how "sped up" the video is.
+    # Increase this number to make the diffusion happen faster!
+    ani.save(filename, writer=PillowWriter(fps=20))
+
+    plt.close(fig)  # Prevent it from opening a blank window
+    print(f"GIF saved successfully as '{filename}'!")
 
 def extract_diffusion_constant(frames: list, dt: float, save_interval: int,
                                x_grid: np.ndarray, y_grid: np.ndarray,
