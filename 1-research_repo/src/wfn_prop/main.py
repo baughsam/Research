@@ -307,6 +307,21 @@ plt.show()
 # Post-Processing & Data Extraction
 print("\nVisualization closed. Executing data extraction pipeline(s)...")
 
+#export gif for presentation
+export_diffusion_gif(
+    frames=frames,
+    dt=time_integrator.dt,
+    save_interval=save_interval,
+    length_x=length_x,
+    length_y=length_y,
+    grid_x=grid_x,
+    grid_y=grid_y,
+    right_panel_mode='qgrid',
+    q_Nx=10, # Update this to match your momentum grid
+    q_Ny=10, # Update this to match your momentum grid
+    filename="pentacene_diffusion_panels.gif"
+)
+
 extracted_D = extract_diffusion_constant(
     frames=frames,
     dt=time_integrator.dt,
