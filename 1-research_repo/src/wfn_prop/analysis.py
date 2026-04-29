@@ -1,5 +1,54 @@
 import numpy as np
 import matplotlib.pyplot as plt
+import matplotlib.animation as animation
+from matplotlib.animation import PillowWriter
+
+import matplotlib.animation as animation
+from matplotlib.animation import PillowWriter
+
+
+def export_diffusion_gif(frames, dt, save_interval, length_x, length_y, grid_x, grid_y, filename="diffusion.gif"):
+    """
+    Exports the spatial density history as an animated GIF for presentations.
+    """
+    print(f"Rendering GIF to {filename} (This might take a minute)...")
+    # 1. Recreate Spatial Grids
+    delta_x = length_x / (grid_x - 1)
+    delta_y = length_y / (grid_y - 1)
+
+    X_grid = np.empty((grid_x, grid_y))
+    Y_grid = np.empty((grid_x, grid_y))
+    for i in range(grid_x):
+        for j in range(grid_y):
+            X_grid[i, j] = i * delta_x
+            Y_grid[i, j] = j * delta_y
+
+    X_flat = X_grid.flatten()
+    Y_flat = Y_grid.flatten()
+
+    # 2. Setup the Plot Figure
+    fig, ax = plt.subplots(figsize=(8, 8))
+    physical_time_per_frame = dt * save_interval
+    # 3. Define the Animation Update Function
+    def update(frame_idx):
+        ax.clear()  # Clear previous frame
+
+        current_time_fs = frame_idx * physical_time_per_frame
+        frame = frames[frame_idx]
+
+        # Calculate Total Physical Density
+        total_density = np.sum(frame, axis=2)
+        total_flat = total_density.flatten()
+
+        # Draw the scatter plot
+        sc = ax.scatter(X_flat, Y_flat, c=total_flat, cmap='magma', marker='s', s=15)
+        ax.set_title(f"Exciton Wavepacket Diffusion | Time: {current_time_fs:.1f} fs", fontsize=14)
+        ax.set_xlabel("X Position (nm)", fontsize=12)
+        ax.set_ylabel("Y Position (nm)", fontsize=12)
+        ax.set_xlim(0, length_x)
+        ax.set_ylim(0, length_y)
+
+        return sc,
 
 
 def extract_diffusion_constant(frames: list, dt: float, save_interval: int,
