@@ -3,16 +3,26 @@ import matplotlib.pyplot as plt
 import matplotlib.animation as animation
 from matplotlib.animation import PillowWriter
 
-import matplotlib.animation as animation
-from matplotlib.animation import PillowWriter
 
+def export_diffusion_gif(frames, dt, save_interval, length_x, length_y, grid_x, grid_y,
+                         right_panel_mode='qgrid', target_state=None, q_Nx=None, q_Ny=None,
+                         filename="diffusion.gif"):
+    """
+    Exports a two-panel animated GIF of the spatial density and momentum distribution.
+    """
+    print(f"Rendering two-panel GIF to {filename} (This might take a minute)...")
 
-def export_diffusion_gif(frames, dt, save_interval, length_x, length_y, grid_x, grid_y, filename="diffusion.gif"):
-    """
-    Exports the spatial density history as an animated GIF for presentations.
-    """
-    print(f"Rendering GIF to {filename} (This might take a minute)...")
-    # 1. Recreate Spatial Grids
+    # 1. Validation / Setup for Q-Grid
+    Nq = frames[0].shape[2]
+    if right_panel_mode == 'slice':
+        if target_state is None or target_state < 0 or target_state >= Nq:
+            raise ValueError(f"Invalid target_state. Must be between 0 and {Nq - 1}.")
+    elif right_panel_mode == 'qgrid':
+        if q_Nx is None or q_Ny is None:
+            q_Nx = int(np.sqrt(Nq))
+            q_Ny = Nq // q_Nx
+
+    # 2. Recreate Spatial Grids
     delta_x = length_x / (grid_x - 1)
     delta_y = length_y / (grid_y - 1)
 
@@ -26,39 +36,61 @@ def export_diffusion_gif(frames, dt, save_interval, length_x, length_y, grid_x, 
     X_flat = X_grid.flatten()
     Y_flat = Y_grid.flatten()
 
-    # 2. Setup the Plot Figure
-    fig, ax = plt.subplots(figsize=(8, 8))
+    # 3. Setup the Two-Panel Figure
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(14, 6))
     physical_time_per_frame = dt * save_interval
-    # 3. Define the Animation Update Function
+
+    # Draw initial colorbars outside the loop so the plot doesn't shrink during animation
+    colorbar_created = False
+
+    # 4. Define the Animation Update Function
     def update(frame_idx):
-        ax.clear()  # Clear previous frame
+        nonlocal colorbar_created
+        ax1.clear()
+        ax2.clear()
 
         current_time_fs = frame_idx * physical_time_per_frame
         frame = frames[frame_idx]
 
-        # Calculate Total Physical Density
+        # --- LEFT PANEL: Real Space ---
         total_density = np.sum(frame, axis=2)
-        total_flat = total_density.flatten()
+        sc1 = ax1.scatter(X_flat, Y_flat, c=total_density.flatten(), cmap='magma', marker='s', s=15)
 
-        # Draw the scatter plot
-        sc = ax.scatter(X_flat, Y_flat, c=total_flat, cmap='magma', marker='s', s=15)
-        ax.set_title(f"Exciton Wavepacket Diffusion | Time: {current_time_fs:.1f} fs", fontsize=14)
-        ax.set_xlabel("X Position (nm)", fontsize=12)
-        ax.set_ylabel("Y Position (nm)", fontsize=12)
-        ax.set_xlim(0, length_x)
-        ax.set_ylim(0, length_y)
+        ax1.set_title(f"Total Exciton Density | Time: {current_time_fs:.3f} fs")
+        ax1.set_xlabel("X Position (nm)")
+        ax1.set_ylabel("Y Position (nm)")
+        ax1.set_xlim(0, length_x)
+        ax1.set_ylim(0, length_y)
 
-        return sc,
+        # --- RIGHT PANEL: Momentum Space ---
+        if right_panel_mode == 'slice':
+            slice_density = frame[:, :, target_state]
+            sc2 = ax2.scatter(X_flat, Y_flat, c=slice_density.flatten(), cmap='viridis', marker='s', s=15)
+            ax2.set_title(f"Phase Space Slice [State {target_state}]")
+            ax2.set_xlabel("X Position (nm)")
+            ax2.set_ylabel("Y Position (nm)")
+            ax2.set_xlim(0, length_x)
+            ax2.set_ylim(0, length_y)
 
-    # 4. Compile and Save
-    # frames=len(frames) tells it how many times to run the update function
+        elif right_panel_mode == 'qgrid':
+            momentum_dist = np.sum(frame, axis=(0, 1)).reshape((q_Nx, q_Ny))
+            sc2 = ax2.imshow(momentum_dist.T, origin='lower', cmap='plasma',
+                             extent=[-np.pi, np.pi, -np.pi, np.pi], interpolation='nearest')
+            ax2.set_title("Momentum Space (Q-Grid)")
+            ax2.set_xlabel("qx")
+            ax2.set_ylabel("qy")
+
+        # Create colorbars only on the very first frame
+        if not colorbar_created:
+            fig.colorbar(sc1, ax=ax1, fraction=0.046, pad=0.04).set_label("Total Mass")
+            fig.colorbar(sc2, ax=ax2, fraction=0.046, pad=0.04).set_label("Q-State Mass")
+            colorbar_created = True
+
+    # 5. Compile and Save
     ani = animation.FuncAnimation(fig, update, frames=len(frames), blit=False)
-
-    # fps (Frames Per Second) controls how "sped up" the video is.
-    # Increase this number to make the diffusion happen faster!
     ani.save(filename, writer=PillowWriter(fps=20))
 
-    plt.close(fig)  # Prevent it from opening a blank window
+    plt.close(fig)
     print(f"GIF saved successfully as '{filename}'!")
 
 def extract_diffusion_constant(frames: list, dt: float, save_interval: int,
