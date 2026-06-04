@@ -9,6 +9,8 @@ temp_K = 300
 sigma_eV = 0.02
 
 RY_TO_EV = 13.605698
+HBAR_EV_FS = (const.hbar / const.e) * 1e15
+GOLDEN_RULE_PREFACTOR = (2.0 * np.pi) / HBAR_EV_FS
 
 # Open HDF5 file in read-only mode
 with h5py.File(xctph_h5, mode = 'r') as f:
@@ -182,9 +184,12 @@ def compute_transition_rates(
 
     # 6. Apply weights and integrate out the phonon modes
     weight_scat_rate_nu_Q_q = tensor_3D_squared * energy_cons_term
-    weight_scat_rate_Q_q = np.sum(weight_scat_rate_nu_Q_q, axis=1)
+    weight_scat_rate_Q_q = np.sum(weight_scat_rate_nu_Q_q, axis=1) # Units: eV
 
-    return weight_scat_rate_Q_q
+    # Convert energy linewidth to scattering rates (Units: 1/fs)
+    weight_scat_rate_Q_q_fs = weight_scat_rate_Q_q * GOLDEN_RULE_PREFACTOR
+
+    return weight_scat_rate_Q_q_fs
 
 # --- Compute Intraband Matrix (B -> B) ---
 Rate_BB = compute_transition_rates(
@@ -210,3 +215,22 @@ Rate_BD = compute_transition_rates(
     sigma_eV=sigma_eV
 )
 
+# 1. Verify the exact dimensionality
+print(f"Rate_BB Shape: {Rate_BB.shape}") # Should print (8, 8)
+
+# 2. Check for NaN values (The 'divide by zero' acoustic mode trap)
+if np.isnan(Rate_BB).any():
+    print("WARNING: NaN values detected! Check your Bose-Einstein mask.")
+else:
+    print("Matrix is clean (No NaNs).")
+
+# 3. Visualize the actual numerical matrix
+# This lets you see the literal scattering hot-spots in your Brillouin zone
+import matplotlib.pyplot as plt
+
+plt.imshow(Rate_BB, cmap='viridis')
+plt.colorbar(label='Scattering Rate (1/fs)')
+plt.title('Bright to Bright Intraband Scattering (Rate_BB)')
+plt.xlabel('Phonon Momentum Index (q)')
+plt.ylabel('Exciton Momentum Index (Q)')
+plt.show()
