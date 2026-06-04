@@ -5,6 +5,8 @@ import numpy as np
 xctph_h5 = "xctph.h5"
 bright_exciton_state = 0
 dark_exciton_state = 1
+temp_K = 300
+sigma_eV = 0.02
 
 RY_TO_EV = 13.605698
 
@@ -108,6 +110,103 @@ def gaussian_weight(delta_E_2D: np.ndarray, frequencies_2D: np.ndarray, sigma_eV
 
     return rho_3D
 
+def energy_conservation_term(BED_2D: np.ndarray, rho_abs_3D: np.ndarray, rho_emiss_3D: np.ndarray) -> np.ndarray:
+    """
+    Combines the thermodynamic (Bose-Einstein) and kinematic (Gaussian)
+    factors into a single 3D phase-space tensor for scattering
+    :param BED_2D: 2D Bose-Enistein distribution, Shape: (nu, q)
+    :param rho_abs_3D: 3D Gaussian broadening for absorption, Shape: (Q, nu, q)
+    :param rho_emiss_3D: 3D Gaussian broadening for emission, Shape: (Q, nu, q)
+    :return: 3D energy conservation weighting tensor
+    """
 
+    # Stretch 2D Bose-Einstein array to 3D
+    BED_3D = BED_2D[np.newaxis, :, :]
 
+    # Absorption
+    absorption = BED_3D * rho_abs_3D
+
+    # Emission
+    emission = (BED_3D + 1) * rho_emiss_3D
+
+    full_energy_conservation_term = absorption + emission
+
+    return full_energy_conservation_term
+
+def compute_transition_rates(
+        g_tensor_5D: np.ndarray,
+        energies: np.ndarray,
+        frequencies: np.ndarray,
+        Q_plus_q_map: np.ndarray,
+        S_initial: int,
+        S_final: int,
+        temp_K: float,
+        sigma_eV: float
+) -> np.ndarray:
+    """
+    Extracts and computes the flattened 2D scattering rate matrix for a specific
+    exciton state transition by evaluating phase-space conservation and
+    integrating out the phonon modes.
+    :return: 2D array of scattering rates. Shape: (Q, q)
+    """
+
+    # 1. Slice and square the tensor for the specific transition
+    tensor_3D = g_tensor_5D[S_initial, S_final, :, :, :]
+    tensor_3D_squared = np.abs(tensor_3D) ** 2
+
+    # 2. Thermodynamic weighting
+    BED_2D = bose_einstein_dist_2D(temp_K=temp_K, freq_2D=frequencies)
+
+    # 3. Kinematic mapping (State-dependent)
+    EG_2D = energy_gap_2D(
+        Q_plus_q_map=Q_plus_q_map,
+        energies=energies,
+        S_initial=S_initial,
+        S_final=S_final
+    )
+
+    # 4. Phase space broadening
+    rho_abs = gaussian_weight(
+        delta_E_2D=EG_2D, frequencies_2D=frequencies,
+        sigma_eV=sigma_eV, process='absorption'
+    )
+    rho_emi = gaussian_weight(
+        delta_E_2D=EG_2D, frequencies_2D=frequencies,
+        sigma_eV=sigma_eV, process='emission'
+    )
+
+    # 5. Total energy conservation term
+    energy_cons_term = energy_conservation_term(
+        BED_2D=BED_2D, rho_abs_3D=rho_abs, rho_emiss_3D=rho_emi
+    )
+
+    # 6. Apply weights and integrate out the phonon modes
+    weight_scat_rate_nu_Q_q = tensor_3D_squared * energy_cons_term
+    weight_scat_rate_Q_q = np.sum(weight_scat_rate_nu_Q_q, axis=1)
+
+    return weight_scat_rate_Q_q
+
+# --- Compute Intraband Matrix (B -> B) ---
+Rate_BB = compute_transition_rates(
+    g_tensor_5D=g_tensor,
+    energies=energies,
+    frequencies=frequencies,
+    Q_plus_q_map=Q_plus_q_map,
+    S_initial=bright_exciton_state,
+    S_final=bright_exciton_state,
+    temp_K=temp_K,
+    sigma_eV=sigma_eV
+)
+
+# --- Compute Interband Matrix (B -> D) ---
+Rate_BD = compute_transition_rates(
+    g_tensor_5D=g_tensor,
+    energies=energies,
+    frequencies=frequencies,
+    Q_plus_q_map=Q_plus_q_map,
+    S_initial=bright_exciton_state,
+    S_final=dark_exciton_state,
+    temp_K=temp_K,
+    sigma_eV=sigma_eV
+)
 
