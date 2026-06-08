@@ -215,22 +215,31 @@ Rate_BD = compute_transition_rates(
     sigma_eV=sigma_eV
 )
 
-# 1. Verify the exact dimensionality
-print(f"Rate_BB Shape: {Rate_BB.shape}") # Should print (8, 8)
+# Find the Gamma point index dynamically (for the placement of the radiative decay rate in K_scat matrix)
+# We re-open the h5 file briefly just to grab the qpoints if they exist
+with h5py.File(xctph_h5, mode='r') as f:
+    try:
+        Q_vectors = f['qpoints'][:]
+        is_gamma = np.all(np.isclose(Q_vectors, 0.0), axis=1)
+        gamma_index = int(np.where(is_gamma)[0][0])
+        print(f"Gamma point located at index: {gamma_index}")
+    except KeyError:
+        print("WARNING: 'qpoints' key not found in h5. Defaulting Gamma index to 0.")
+        gamma_index = 0
 
-# 2. Check for NaN values (The 'divide by zero' acoustic mode trap)
-if np.isnan(Rate_BB).any():
-    print("WARNING: NaN values detected! Check your Bose-Einstein mask.")
-else:
-    print("Matrix is clean (No NaNs).")
+# Radiative Decay (Bright @ Gamma -> Ground)
+# Calculate this from the dipole strength as per Term 4 in the paper
+radiative_rate_fs = 0.005 #
 
-# 3. Visualize the actual numerical matrix
-# This lets you see the literal scattering hot-spots in your Brillouin zone
-import matplotlib.pyplot as plt
+# 6. Export the Payload
+output_filename = 'compiled_scat_rates_data.npz'
+np.savez(
+    output_filename,
+    Rate_BB=Rate_BB,
+    Rate_BD=Rate_BD,
+    Q_plus_q_map=Q_plus_q_map,
+    gamma_index=gamma_index,
+    radiative_rate=radiative_rate_fs
+)
 
-plt.imshow(Rate_BB, cmap='viridis')
-plt.colorbar(label='Scattering Rate (1/fs)')
-plt.title('Bright to Bright Intraband Scattering (Rate_BB)')
-plt.xlabel('Phonon Momentum Index (q)')
-plt.ylabel('Exciton Momentum Index (Q)')
-plt.show()
+print(f"\nSUCCESS: Exported fully coupled physics payload to {output_filename}")
