@@ -2,7 +2,7 @@ import numpy as np
 import scipy.constants as const
 import matplotlib.pyplot as plt
 from wfn_prop.NumMthds import RungeKutta4, UpwindDifference2d, UpwindDifference3d, CentralDifference3d
-from wfn_prop.k_scat import Decay, FickDiff, PhononScat
+from wfn_prop.k_scat import Decay, FickDiff, PhononScat, two_state_transition_matrix
 from wfn_prop.analysis import extract_diffusion_constant, visualize_simulation, export_diffusion_gif
 
 # Gaussian Distribution Function
@@ -230,14 +230,16 @@ Y_flat = Y_grid.flatten()
 print("Setting up simulation...")
 advection_solver = CentralDifference3d(dx=delta_x, dy=delta_y, vel_x=v_x_array, vel_y=v_y_array)
 
-# Get energy values for phonon baths
-energy_array = generate_energy_array_tight_binding(Nx=Nx, Ny=Ny,half_bandwidth_eV=0.05)
-# Generate Scattering Matrix
-#W_matrix = initialize_tranisiton_matrix(energies_eV=energy_array, temp_K=300, coupling_constant=0.5)
-#Scattering Matrix that aligns with Derivation
-W_matrix = initialize_transition_matrix_RTA(energies_eV=energy_array, temp_K=300, coupling_constant=0.05)
-# Choose Scattering Obj
-scattering_obj = PhononScat(transition_matrix=W_matrix)
+# K_scat Matrix from paper
+print("Loading pre-calculated ab initio data...")
+ab_init_data = np.load('compiled_scat_rates_data.npz')
+scattering_obj = two_state_transition_matrix(
+    k_BB=ab_init_data['Rate_BB'],
+    k_BD=ab_init_data['Rate_BD'],
+    gamma_decay_constant=ab_init_data['radiative_rate'],
+    map_Q_to_q=ab_init_data['Q_plus_q_map'],
+    gamma_index=ab_init_data['gamma_index']
+)
 
 # Simulate for X femtoseconds
 time_integrator = RungeKutta4(spatial_solver=advection_solver, total_sim_time=55.0, scattering_solver=scattering_obj)
