@@ -219,7 +219,7 @@ Rate_BD = compute_transition_rates(
 # We re-open the h5 file briefly just to grab the qpoints if they exist
 with h5py.File(xctph_h5, mode='r') as f:
     try:
-        Q_vectors = f['qpoints'][:]
+        Q_vectors = f['Qpts'][:]
         is_gamma = np.all(np.isclose(Q_vectors, 0.0), axis=1)
         gamma_index = int(np.where(is_gamma)[0][0])
         print(f"Gamma point located at index: {gamma_index}")
