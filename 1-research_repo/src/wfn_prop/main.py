@@ -22,6 +22,10 @@ def gaussian_dist_2d(x_pos, y_pos, spread_x, spread_y, amplitude, center_x, cent
 # xctph .npz file
 xctph_npz = 'compiled_scat_rates_data.npz'
 
+#Size of Q-grid
+Q_x = 2
+Q_y = 4
+
 # Real Space Dimension in nanometers
 length_x = 100#40
 length_y = 100#40
@@ -56,12 +60,30 @@ Y_flat = Y_grid.flatten()
 print("Loading pre-calculated ab initio .npz file...")
 physics_payload = np.load(xctph_npz)
 
-Q_vectors = physics_payload['qpoints']
+Q_vectors = physics_payload['Qpts']
 N_Q = len(Q_vectors)
 
-# GROUP VELOCITY PLACEHOLDER
-v_x_array = np.zeros(N_Q)
-v_y_array = np.zeros(N_Q)
+# =====================================================================
+# TEMPORARY PLACEHOLDER: PARABOLIC GROUP VELOCITIES
+# Group velocity of a parabolic band is linearly proportional to Q.
+# We scale the vectors so the maximum velocity is 0.5 nm/fs to yield a stable dt.
+# TODO: Replace with real ab initio payload['vel_x'] and payload['vel_y']
+# =====================================================================
+max_target_vel = 0.5  # nm/fs
+
+# Find the maximum Q distance in the grid
+Q_magnitudes = np.linalg.norm(Q_vectors, axis=1)
+max_Q = np.max(Q_magnitudes)
+
+if max_Q > 0.0:
+    # Scale x and y momentum components directly into velocities
+    v_x_array = (Q_vectors[:, 0] / max_Q) * max_target_vel
+    v_y_array = (Q_vectors[:, 1] / max_Q) * max_target_vel
+else:
+    # Failsafe if only the Gamma point exists
+    v_x_array = np.zeros(N_Q)
+    v_y_array = np.zeros(N_Q)
+    print("FAILSAFE ACTIVATED, SIMULATION WILL CRASH; FIX IMMEDIATELY!!!!")
 
 # Initializing Gaussian Wavepack
 # From: Signatures of Dimensionality and Symmetry in Exciton Band
@@ -100,7 +122,7 @@ scattering_obj = two_state_transition_matrix(
 )
 
 # Simulate for X femtoseconds
-time_integrator = RungeKutta4(spatial_solver=advection_solver, total_sim_time=55.0, scattering_solver=scattering_obj)
+time_integrator = RungeKutta4(spatial_solver=advection_solver, total_sim_time=60.0, scattering_solver=scattering_obj)
 
 # Run the integration and get the history of frames
 print("Running RK4 Integration...")
@@ -148,12 +170,12 @@ export_diffusion_gif(
     grid_x=grid_x,
     grid_y=grid_y,
     right_panel_mode='qgrid',
-    q_Nx=N_Q,
-    q_Ny=N_Q,
+    q_Nx=Q_x,
+    q_Ny=Q_y,
     filename="diffusion_panels_0.05_300.gif"
 )
 
-extracted_D = extract_diffusion_constant(
+"""extracted_D = extract_diffusion_constant(
     frames=frames,
     dt=time_integrator.dt,
     save_interval=save_interval,
@@ -161,4 +183,4 @@ extracted_D = extract_diffusion_constant(
     y_grid=Y_grid,
     cutoff_fraction=0.6,
     show_plot=True
-)
+)"""
