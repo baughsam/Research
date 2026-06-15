@@ -238,7 +238,8 @@ np.savez(
     Rate_BD=Rate_BD,
     Q_plus_q_map=Q_plus_q_map,
     gamma_index=gamma_index,
-    radiative_rate=radiative_rate_fs
+    radiative_rate=radiative_rate_fs,
+    Qpts = Q_vectors
 )
 
 print(f"\nSUCCESS: Exported fully coupled physics payload to {output_filename}")
