@@ -84,7 +84,7 @@ class two_state_transition_matrix(Kscat):
         """
         Builds the static K_scat matrix from the provided raw physics arrays.
         """
-        self.transition_matrix = self._build_operator
+        self.transition_matrix = self._build_operator()
 
     def _build_operator(self) -> np.ndarray:
         # Check matrix sizes
