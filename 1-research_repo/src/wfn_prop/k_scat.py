@@ -86,7 +86,7 @@ class two_state_transition_matrix(Kscat):
         """
         self.transition_matrix = self._build_operator
 
-    def __build_operator(self) -> np.ndarray:
+    def _build_operator(self) -> np.ndarray:
         # Check matrix sizes
         N_Q, N_q = self.k_BB.shape
 
