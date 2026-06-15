@@ -224,8 +224,7 @@ with h5py.File(xctph_h5, mode='r') as f:
         gamma_index = int(np.where(is_gamma)[0][0])
         print(f"Gamma point located at index: {gamma_index}")
     except KeyError:
-        print("WARNING: 'qpoints' key not found in h5. Defaulting Gamma index to 0.")
-        gamma_index = 0
+        print("WARNING: 'Qpts' key not found in h5. Defaulting Gamma index to 0.")
 
 # Radiative Decay (Bright @ Gamma -> Ground)
 # Calculate this from the dipole strength as per Term 4 in the paper
