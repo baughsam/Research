@@ -191,6 +191,43 @@ def compute_transition_rates(
 
     return weight_scat_rate_Q_q_fs
 
+def calc_radiative_rate_fs(omega_eV, dipole_sq_bohr, area_sq_angstrom):
+    """
+    Calculates the radiative decay rate of an exciton at the Gamma point.
+    Evaluates Eqn. 6 from Phonon-Driven Femtosecond Dynamics of Excitons in
+    Crystalline Pentacene from First Principles using CGS units
+    :param omega_eV: Exciton energy at Gamma (eV)
+    :param dipole_sq_bohr: Modul
+    :param area_sq_angstrom:
+    :return:
+    """
+    # Fundamental Constants in CGS
+    e_esu = 4.80320425e-10         # Elementary charge
+    c_cm_s = const.c * 100         # Speed of light in cm/s
+    hbar_erg_s = const.hbar * 1e7  # Reduced Planck constant in erg*s
+
+    # Convert Inputs to CGS
+    # 1 eV = 1.60218e-12 erg
+    omega_erg = omega_eV * const.e * 1e7
+
+    # 1 Bohr = 5.29177e-9 cm
+    a0_cm = const.physical_constants['Bohr radius'][0] * 100
+    dipole_sq_cm = dipole_sq_bohr * (a0_cm**2)
+
+    # 1 Angstrom = 1e-8 cm
+    area_sq_cm = area_sq_angstrom * 1e-16
+
+    # Evaluating Eqn. 6
+    numerator = 2 * np.pi * (e_esu**2) * omega_erg * dipole_sq_cm
+    denominator = (hbar_erg_s**2) * c_cm_s * area_sq_cm
+
+    rate_s_inv = numerator /denominator
+
+    # Convert to fs^-1
+    rate_fs_inv = rate_s_inv * 1e-15
+
+    return rate_fs_inv
+
 # --- Compute Intraband Matrix (B -> B) ---
 Rate_BB = compute_transition_rates(
     g_tensor_5D=g_tensor,
