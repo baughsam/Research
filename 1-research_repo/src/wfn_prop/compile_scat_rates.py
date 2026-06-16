@@ -12,6 +12,12 @@ RY_TO_EV = 13.605698
 HBAR_EV_FS = (const.hbar / const.e) * 1e15
 GOLDEN_RULE_PREFACTOR = (2.0 * np.pi) / HBAR_EV_FS
 
+# TODO: Extract these three exact values from your h5 / QE out files
+gamma_energy_eV = 1.85           # Placeholder: e.g., 1.85 eV for Pentacene
+dipole_strength_bohr_sq = 10.0   # Placeholder: Modulus square of the transition
+unit_cell_area_angstroms = 30.0  # Placeholder: a * b * sin(gamma)
+
+
 # Open HDF5 file in read-only mode
 with h5py.File(xctph_h5, mode = 'r') as f:
 
