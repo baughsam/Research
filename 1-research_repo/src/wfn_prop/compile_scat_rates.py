@@ -272,8 +272,8 @@ with h5py.File(xctph_h5, mode='r') as f:
 print("Calculating radiative decay rate from ab initio dipole...")
 radiative_rate_fs = calc_radiative_rate_fs(
     omega_eV=gamma_energy_eV,
-    dipole_bohr_sq=dipole_strength_bohr_sq,
-    area_angstrom_sq=unit_cell_area_angstroms
+    dipole_sq_bohr=dipole_strength_bohr_sq,
+    area_sq_angstrom=unit_cell_area_angstroms
 )
 print(f"Calculated Radiative Rate: {radiative_rate_fs:.6e} fs^-1")
 print(f"Corresponding Lifetime:    {1/radiative_rate_fs:.2f} fs")
