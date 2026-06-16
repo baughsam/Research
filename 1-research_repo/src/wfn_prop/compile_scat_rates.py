@@ -273,7 +273,8 @@ with h5py.File(xctph_h5, mode='r') as f:
 # Calculate this from the dipole strength as per Term 4 in the paper
 radiative_rate_fs = 0.005 #
 
-# 6. Export the Payload
+# Export the physics payload
+print("Exporting .npz (physics payload)...")
 output_filename = 'compiled_scat_rates_data.npz'
 np.savez(
     output_filename,
