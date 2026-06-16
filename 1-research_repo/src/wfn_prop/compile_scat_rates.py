@@ -269,9 +269,14 @@ with h5py.File(xctph_h5, mode='r') as f:
     except KeyError:
         print("WARNING: 'Qpts' key not found in h5. Defaulting Gamma index to 0.")
 
-# Radiative Decay (Bright @ Gamma -> Ground)
-# Calculate this from the dipole strength as per Term 4 in the paper
-radiative_rate_fs = 0.005 #
+print("Calculating radiative decay rate from ab initio dipole...")
+radiative_rate_fs = calc_radiative_rate_fs(
+    omega_eV=gamma_energy_eV,
+    dipole_bohr_sq=dipole_strength_bohr_sq,
+    area_angstrom_sq=unit_cell_area_angstroms
+)
+print(f"Calculated Radiative Rate: {radiative_rate_fs:.6e} fs^-1")
+print(f"Corresponding Lifetime:    {1/radiative_rate_fs:.2f} fs")
 
 # Export the physics payload
 print("Exporting .npz (physics payload)...")
