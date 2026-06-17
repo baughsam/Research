@@ -3,7 +3,7 @@ import scipy.constants as const
 import matplotlib.pyplot as plt
 from wfn_prop.NumMthds import RungeKutta4, UpwindDifference2d, UpwindDifference3d, CentralDifference3d
 from wfn_prop.k_scat import Decay, FickDiff, PhononScat, two_state_transition_matrix
-from wfn_prop.analysis import extract_diffusion_constant, visualize_simulation, export_diffusion_gif, visualize_explicit_q_slice
+from wfn_prop.analysis import extract_diffusion_constant, visualize_simulation, export_diffusion_gif, visualize_explicit_q_slice, visualize_projected_momentum
 
 # Gaussian Distribution Function
 def gaussian_dist_2d(x_pos, y_pos, spread_x, spread_y, amplitude, center_x, center_y):
@@ -133,8 +133,17 @@ print("Simulation complete. Launching visualization...")
 
 save_interval = 2
 
-# q-grid
-# Mode B: Explicit Q-Slice (Microscopic View)
+visualize_projected_momentum(
+    frames=frames,
+    dt=time_integrator.dt,
+    save_interval=save_interval,
+    length_x=length_x,
+    length_y=length_y,
+    q_vectors=Q_vectors,
+    projection=('x', 'y')
+)
+
+"""# Mode B: Explicit Q-Slice (Microscopic View)
 visualize_explicit_q_slice(
     frames=frames,
     dt=time_integrator.dt,
@@ -145,7 +154,7 @@ visualize_explicit_q_slice(
     grid_y=grid_y,
     target_state=8,
     q_vectors=Q_vectors
-)
+)"""
 # q-slice
 """visualize_simulation(
     frames=frames,

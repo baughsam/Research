@@ -302,6 +302,19 @@ def visualize_simulation(frames: list, dt: float, save_interval: int,
 def visualize_explicit_q_slice(frames: list, dt: float, save_interval: int,
                                length_x: float, length_y: float, grid_x: int, grid_y: int,
                                target_state: int, q_vectors: np.ndarray):
+    """
+
+    :param frames: List of frames from completed simulation.
+    :param dt: time step
+    :param save_interval: interval at which frames are saved
+    :param length_x: spatial length in x
+    :param length_y: spatial length in y
+    :param grid_x: discretization of field in x
+    :param grid_y: discretization of field in y
+    :param target_state: q-state that is being visualized
+    :param q_vectors: Qpts from xctph.h5
+    :return: visualization of real-space density q-slice
+    """
     # Boundary Validation
     Nq = frames[0].shape[2]
     if target_state is None or target_state < 0 or target_state >= Nq:
@@ -351,3 +364,95 @@ def visualize_explicit_q_slice(frames: list, dt: float, save_interval: int,
     plt.ioff()
     plt.show()
 
+def visualize_projected_momentum(frames: list, dt: float, save_interval: int,
+                                    length_x: float, length_y: float,
+                                    q_vectors: np.ndarray,
+                                    projection: tuple = ('x','y')):
+    """
+    :param frames: List of frames from completed simulation.
+    :param dt: time step
+    :param save_interval: interval at which frames are saved
+    :param length_x: spatial length in x
+    :param length_y: spatial length in y
+    :param q_vectors: Qpts from xctph.h5
+    :param projection: directions for 2D projection of Q-space
+    :return: visualization of full density and projected momentum
+    """
+    # Axis Mapping & Validation
+    axis_map = {'x': 0, 'y': 1, 'z': 2}
+    if projection[0] not in axis_map or projection[1] not in axis_map:
+        raise ValueError("Projection tuple must strictly contain 'x', 'y', or 'z'.")
+
+    ax1_idx = axis_map[projection[0]]
+    ax2_idx = axis_map[projection[1]]
+    Nq = frames[0].shape[2]
+    # Map the physical Q-Grid for heatmap
+    unique_q1 = np.unique(q_vectors[:, ax1_idx])
+    unique_q2 = np.unique(q_vectors[:, ax2_idx])
+
+    # Calculate bin widths to properly center the pixels in imshow
+    dq1 = (unique_q1[1] - unique_q1[0]) if len(unique_q1) > 1 else 1.0
+    dq2 = (unique_q2[1] - unique_q2[0]) if len(unique_q2) > 1 else 1.0
+
+    q1_min, q1_max = unique_q1.min() - dq1 / 2, unique_q1.max() + dq1 / 2
+    q2_min, q2_max = unique_q2.min() - dq2 / 2, unique_q2.max() + dq2 / 2
+    q_extent = [q1_min, q1_max, q2_min, q2_max]
+
+    # Setup Plotting
+    physical_time_per_frame = dt * save_interval
+    plt.ion()
+    fig, (ax_real, ax_mom) = plt.subplots(1, 2, figsize=(14, 6))
+    colorbar_created = False
+
+    # Animation Loop
+    for i, frame in enumerate(frames):
+        ax_real.clear()
+        ax_mom.clear()
+        current_time_fs = i * physical_time_per_frame
+
+        # -- LEFT PANEL: Total Real-Space Density --
+        total_density = np.sum(frame, axis=2)
+        im_real = ax_real.imshow(total_density.T, origin='lower', cmap='magma',
+                                 extent=[0, length_x, 0, length_y], interpolation='nearest')
+
+        ax_real.set_title(f"Total Exciton Density | Time: {current_time_fs:.3f} fs")
+        ax_real.set_xlabel("X Position (nm)")
+        ax_real.set_ylabel("Y Position (nm)")
+
+        # -- RIGHT PANEL: Truncated Momentum Space
+        # Create 2D grid
+        momentum_2d = np.zeros((len(unique_q1), len(unique_q2)))
+
+        # Sum out the unobserved axis
+        for q_idx in range(Nq):
+            density_in_state = np.sum(frame[:, :, q_idx])
+            val1 = q_vectors[q_idx, ax1_idx]
+            val2 = q_vectors[q_idx, ax2_idx]
+
+            # Find matrix indices for this state's coordinate
+            idx1 = np.where(unique_q1 == val1)[0][0]
+            idx2 = np.where(unique_q2 == val2)[0][0]
+
+            momentum_2d[idx1, idx2] += density_in_state
+
+        im_mom = ax_mom.imshow(momentum_2d.T, origin='lower', cmap='plasma',
+                               extent=q_extent, interpolation='nearest')
+
+        ax_mom.set_title(f"Momentum Space Projection ({projection[0]}-{projection[1]} Plane)")
+        ax_mom.set_xlabel(f"q_{projection[0]}")
+        ax_mom.set_ylabel(f"q_{projection[1]}")
+
+        # Colorbars
+        if not colorbar_created:
+            cbar1 = fig.colorbar(im_real, ax=ax_real, fraction=0.046, pad=0.04)
+            cbar1.set_label("Total Density")
+
+            cbar2 = fig.colorbar(im_mom, ax=ax_mom, fraction=0.046, pad=0.04)
+            cbar2.set_label(f"Projected Mass in Q-Plane")
+            colorbar_created = True
+
+        plt.draw()
+        plt.pause(0.05)
+
+    plt.ioff()
+    plt.show()
