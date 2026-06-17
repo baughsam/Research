@@ -84,14 +84,14 @@ class two_state_transition_matrix(Kscat):
         """
         Builds the static K_scat matrix from the provided raw physics arrays.
         """
-        self.transition_matrix = self._build_operator
+        self.transition_matrix = self._build_operator()
 
-    def __build_operator(self) -> np.ndarray:
+    def _build_operator(self) -> np.ndarray:
         # Check matrix sizes
         N_Q, N_q = self.k_BB.shape
 
         assert self.k_BB.shape == self.k_BD.shape, f"FATAL: Dimension mismatch between k_BB {self.k_BB.shape} and k_BD {self.k_BD.shape}"
-        assert self.map_Q_to_q == (N_Q, N_q), "FATAL: Mapping array shape does not match the rate arrays."
+        assert self.map_Q_to_q.shape == (N_Q, N_q), "FATAL: Mapping array shape does not match the rate arrays."
 
         print(f"Inititalizing two_state_transition_matrix operator of size ({N_Q}, {N_Q})...")
 

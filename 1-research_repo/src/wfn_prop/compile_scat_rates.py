@@ -12,6 +12,12 @@ RY_TO_EV = 13.605698
 HBAR_EV_FS = (const.hbar / const.e) * 1e15
 GOLDEN_RULE_PREFACTOR = (2.0 * np.pi) / HBAR_EV_FS
 
+# TODO: Extract these three exact values from your h5 / QE out files
+gamma_energy_eV = 1.85           # Placeholder: e.g., 1.85 eV for Pentacene
+dipole_strength_bohr_sq = 10.0   # Placeholder: Modulus square of the transition
+unit_cell_area_angstroms = 30.0  # Placeholder: a * b * sin(gamma)
+
+
 # Open HDF5 file in read-only mode
 with h5py.File(xctph_h5, mode = 'r') as f:
 
@@ -191,6 +197,43 @@ def compute_transition_rates(
 
     return weight_scat_rate_Q_q_fs
 
+def calc_radiative_rate_fs(omega_eV, dipole_sq_bohr, area_sq_angstrom):
+    """
+    Calculates the radiative decay rate of an exciton at the Gamma point.
+    Evaluates Eqn. 6 from Phonon-Driven Femtosecond Dynamics of Excitons in
+    Crystalline Pentacene from First Principles using CGS units
+    :param omega_eV: Exciton energy at Gamma (eV)
+    :param dipole_sq_bohr: Modul
+    :param area_sq_angstrom:
+    :return:
+    """
+    # Fundamental Constants in CGS
+    e_esu = 4.80320425e-10         # Elementary charge
+    c_cm_s = const.c * 100         # Speed of light in cm/s
+    hbar_erg_s = const.hbar * 1e7  # Reduced Planck constant in erg*s
+
+    # Convert Inputs to CGS
+    # 1 eV = 1.60218e-12 erg
+    omega_erg = omega_eV * const.e * 1e7
+
+    # 1 Bohr = 5.29177e-9 cm
+    a0_cm = const.physical_constants['Bohr radius'][0] * 100
+    dipole_sq_cm = dipole_sq_bohr * (a0_cm**2)
+
+    # 1 Angstrom = 1e-8 cm
+    area_sq_cm = area_sq_angstrom * 1e-16
+
+    # Evaluating Eqn. 6
+    numerator = 2 * np.pi * (e_esu**2) * omega_erg * dipole_sq_cm
+    denominator = (hbar_erg_s**2) * c_cm_s * area_sq_cm
+
+    rate_s_inv = numerator /denominator
+
+    # Convert to fs^-1
+    rate_fs_inv = rate_s_inv * 1e-15
+
+    return rate_fs_inv
+
 # --- Compute Intraband Matrix (B -> B) ---
 Rate_BB = compute_transition_rates(
     g_tensor_5D=g_tensor,
@@ -219,19 +262,24 @@ Rate_BD = compute_transition_rates(
 # We re-open the h5 file briefly just to grab the qpoints if they exist
 with h5py.File(xctph_h5, mode='r') as f:
     try:
-        Q_vectors = f['qpoints'][:]
+        Q_vectors = f['Qpts'][:]
         is_gamma = np.all(np.isclose(Q_vectors, 0.0), axis=1)
         gamma_index = int(np.where(is_gamma)[0][0])
         print(f"Gamma point located at index: {gamma_index}")
     except KeyError:
-        print("WARNING: 'qpoints' key not found in h5. Defaulting Gamma index to 0.")
-        gamma_index = 0
+        print("WARNING: 'Qpts' key not found in h5. Defaulting Gamma index to 0.")
 
-# Radiative Decay (Bright @ Gamma -> Ground)
-# Calculate this from the dipole strength as per Term 4 in the paper
-radiative_rate_fs = 0.005 #
+print("Calculating radiative decay rate from ab initio dipole...")
+radiative_rate_fs = calc_radiative_rate_fs(
+    omega_eV=gamma_energy_eV,
+    dipole_sq_bohr=dipole_strength_bohr_sq,
+    area_sq_angstrom=unit_cell_area_angstroms
+)
+print(f"Calculated Radiative Rate: {radiative_rate_fs:.6e} fs^-1")
+print(f"Corresponding Lifetime:    {1/radiative_rate_fs:.2f} fs")
 
-# 6. Export the Payload
+# Export the physics payload
+print("Exporting .npz (physics payload)...")
 output_filename = 'compiled_scat_rates_data.npz'
 np.savez(
     output_filename,
@@ -239,7 +287,8 @@ np.savez(
     Rate_BD=Rate_BD,
     Q_plus_q_map=Q_plus_q_map,
     gamma_index=gamma_index,
-    radiative_rate=radiative_rate_fs
+    radiative_rate=radiative_rate_fs,
+    Qpts = Q_vectors
 )
 
 print(f"\nSUCCESS: Exported fully coupled physics payload to {output_filename}")
