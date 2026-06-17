@@ -3,7 +3,7 @@ import scipy.constants as const
 import matplotlib.pyplot as plt
 from wfn_prop.NumMthds import RungeKutta4, UpwindDifference2d, UpwindDifference3d, CentralDifference3d
 from wfn_prop.k_scat import Decay, FickDiff, PhononScat, two_state_transition_matrix
-from wfn_prop.analysis import extract_diffusion_constant, visualize_simulation, export_diffusion_gif
+from wfn_prop.analysis import extract_diffusion_constant, visualize_simulation, export_diffusion_gif, visualize_explicit_q_slice
 
 # Gaussian Distribution Function
 def gaussian_dist_2d(x_pos, y_pos, spread_x, spread_y, amplitude, center_x, center_y):
@@ -134,7 +134,8 @@ print("Simulation complete. Launching visualization...")
 save_interval = 2
 
 # q-grid
-visualize_simulation(
+# Mode B: Explicit Q-Slice (Microscopic View)
+visualize_explicit_q_slice(
     frames=frames,
     dt=time_integrator.dt,
     save_interval=save_interval,
@@ -142,7 +143,8 @@ visualize_simulation(
     length_y=length_y,
     grid_x=grid_x,
     grid_y=grid_y,
-    right_panel_mode='qgrid'
+    target_state=8,
+    q_vectors=Q_vectors
 )
 # q-slice
 """visualize_simulation(
@@ -161,7 +163,7 @@ visualize_simulation(
 print("\nVisualization closed. Executing data extraction pipeline(s)...")
 
 #export gif for presentation
-export_diffusion_gif(
+"""export_diffusion_gif(
     frames=frames,
     dt=time_integrator.dt,
     save_interval=save_interval,
@@ -173,7 +175,7 @@ export_diffusion_gif(
     q_Nx=Q_x,
     q_Ny=Q_y,
     filename="diffusion_panels_0.05_300.gif"
-)
+)"""
 
 """extracted_D = extract_diffusion_constant(
     frames=frames,
