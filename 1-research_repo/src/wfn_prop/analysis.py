@@ -299,4 +299,55 @@ def visualize_simulation(frames: list, dt: float, save_interval: int,
     plt.ioff()
     plt.show()
 
+def visualize_explicit_q_slice(frames: list, dt: float, save_interval: int,
+                               length_x: float, length_y: float, grid_x: int, grid_y: int,
+                               target_state: int, q_vectors: np.ndarray):
+    # Boundary Validation
+    Nq = frames[0].shape[2]
+    if target_state is None or target_state < 0 or target_state >= Nq:
+        raise ValueError(f"Error: Target state {target_state} is out of bounds. "
+                         f"Please select an index between 0 and {Nq - 1}.")
+
+    if len(q_vectors) != Nq:
+        raise ValueError(f"Fatal: Mismatch between simulation momentum states ({Nq}) "
+                         f"and provided Q-vectors list ({len(q_vectors)}).")
+
+    # Extract Q-Coordinates for Laveling
+    qx, qy, qz = q_vectors[target_state]
+    coordinate_label = f"Q = ({qx:.3f}, {qy:.3f}, {qz: .3f})"
+    print(f"Launching explicit Q-Slice Visualization for State {target_state} | {coordinate_label}")
+
+    # Initialize Plotting
+    physical_time_per_frame = dt * save_interval
+
+    plt.ion()
+    fig, ax = plt.subplots(figsize=(8, 7))
+    colorbar_created = False
+
+    # Animation Loop
+    for i, frame in enumerate(frames):
+        ax.clear()
+        current_time_fs = i * physical_time_per_frame
+
+        #Extract density from target slice
+        slice_density = frame[:, :, target_state]
+
+        im = ax.imshow(slice_density.T, origin='lower', cmap='viridis',
+                       extent=[0, length_x, 0, length_y], interpolation='nearest')
+
+        #Explicit Labeling Standard
+        ax.set_title(f"Explicit Q-Slice: Index {target_state}\n{coordinate_label} | Time: {current_time_fs:.3f} fs")
+        ax.set_xlabel("X Position (nm)")
+        ax.set_ylabel("Y Position (nm)")
+
+        if not colorbar_created:
+            cbar = fig.colorbar(im, ax=ax, fraction=0.046, pad=0.04)
+            cbar.set_label("Exciton Density in State")
+            colorbar_created = True
+
+        plt.draw()
+        plt.pause(0.05)
+
+    plt.ioff()
+    plt.show()
 
