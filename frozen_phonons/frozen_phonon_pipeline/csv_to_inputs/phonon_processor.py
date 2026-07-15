@@ -185,7 +185,7 @@ def main():
     # END OF USER SETTINGS
     # ------------------------------------------------------------------
 
-    print("--- Starting Batch Phonon Processor (v2) ---")
+    print("--- Starting Batch Phonon Processor ---")
 
     if not (len(ATOM_SYMBOLS) == len(ATOM_COUNTS) == len(ATOM_MASSES_KG)):
         print("Error: 'atom_symbols', 'atom_counts', and 'atom_masses_kg' lists must have the same length.")
