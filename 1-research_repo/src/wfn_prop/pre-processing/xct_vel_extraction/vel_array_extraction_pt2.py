@@ -32,13 +32,20 @@ for q_idx, q_vec in enumerate(Qpts):
     E_3D[i, j, k] = energies_1D[q_idx]
     mapping_indices.append((i, j, k))
 
-# 3. Calculate 3D Velocity Gradient
-print("Calculating velocity field...")
-grad_E = np.gradient(E_3D, dqx, dqy, dqz)
+# 3. Calculate 3D Velocity Gradient (With Periodic Boundaries)
+print("Calculating velocity field with periodic boundary padding...")
 
-v_3D_x = grad_E[0] / HBAR_EV_FS
-v_3D_y = grad_E[1] / HBAR_EV_FS
-v_3D_z = grad_E[2] / HBAR_EV_FS
+# Wrap the edges of the Brillouin zone to enforce periodic boundaries
+E_3D_padded = np.pad(E_3D, pad_width=1, mode='wrap')
+
+# Calculate the gradient on the padded array
+grad_E_padded = np.gradient(E_3D_padded, dqx, dqy, dqz)
+
+# Slice off the artificial padding (index 1 to -1) to restore the original Nx, Ny, Nz dimensions,
+# then apply the HBAR_EV_FS constant to convert to proper velocity units.
+v_3D_x = grad_E_padded[0][1:-1, 1:-1, 1:-1] / HBAR_EV_FS
+v_3D_y = grad_E_padded[1][1:-1, 1:-1, 1:-1] / HBAR_EV_FS
+v_3D_z = grad_E_padded[2][1:-1, 1:-1, 1:-1] / HBAR_EV_FS
 
 # 4. Flatten back to 1D arrays using the original order
 v_x_1D, v_y_1D, v_z_1D = np.zeros(len(Qpts)), np.zeros(len(Qpts)), np.zeros(len(Qpts))
