@@ -4,6 +4,118 @@ import matplotlib.animation as animation
 from matplotlib.animation import PillowWriter
 
 
+def export_diffusion_gif_updated(frames, dt, save_interval, length_x, length_y, grid_x, grid_y,
+                         right_panel_mode='qgrid', target_state=None,
+                         q_vectors=None, projection=('x', 'y'),  # <-- New Arguments
+                         filename="diffusion.gif"):
+    """
+    Exports a two-panel animated GIF of the spatial density and momentum distribution.
+    Supports 3D momentum grids via projection.
+    """
+    print(f"Rendering two-panel GIF to {filename} (This might take a minute)...")
+
+    Nq = frames[0].shape[2]
+
+    if right_panel_mode == 'slice':
+        if target_state is None or target_state < 0 or target_state >= Nq:
+            raise ValueError(f"Invalid target_state. Must be between 0 and {Nq - 1}.")
+
+    elif right_panel_mode == 'qgrid':
+        if q_vectors is None:
+            raise ValueError("q_vectors must be provided for 3D qgrid projection.")
+
+        # Setup projection axes
+        axis_map = {'x': 0, 'y': 1, 'z': 2}
+        ax1_idx = axis_map[projection[0]]
+        ax2_idx = axis_map[projection[1]]
+
+        unique_q1 = np.unique(q_vectors[:, ax1_idx])
+        unique_q2 = np.unique(q_vectors[:, ax2_idx])
+
+        dq1 = (unique_q1[1] - unique_q1[0]) if len(unique_q1) > 1 else 1.0
+        dq2 = (unique_q2[1] - unique_q2[0]) if len(unique_q2) > 1 else 1.0
+        q_extent = [unique_q1.min() - dq1 / 2, unique_q1.max() + dq1 / 2,
+                    unique_q2.min() - dq2 / 2, unique_q2.max() + dq2 / 2]
+
+    # Recreate Spatial Grids
+    delta_x = length_x / (grid_x - 1)
+    delta_y = length_y / (grid_y - 1)
+
+    X_grid = np.empty((grid_x, grid_y))
+    Y_grid = np.empty((grid_x, grid_y))
+    for i in range(grid_x):
+        for j in range(grid_y):
+            X_grid[i, j] = i * delta_x
+            Y_grid[i, j] = j * delta_y
+
+    X_flat = X_grid.flatten()
+    Y_flat = Y_grid.flatten()
+
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(14, 6))
+    physical_time_per_frame = dt * save_interval
+    colorbar_created = False
+
+    def update(frame_idx):
+        nonlocal colorbar_created
+        ax1.clear()
+        ax2.clear()
+
+        current_time_fs = frame_idx * physical_time_per_frame
+        frame = frames[frame_idx]
+
+        # --- LEFT PANEL: Real Space ---
+        total_density = np.sum(frame, axis=2)
+        sc1 = ax1.scatter(X_flat, Y_flat, c=total_density.flatten(), cmap='magma', marker='s', s=15)
+
+        ax1.set_title(f"Total Exciton Density | Time: {current_time_fs:.3f} fs")
+        ax1.set_xlabel("X Position (nm)")
+        ax1.set_ylabel("Y Position (nm)")
+        ax1.set_xlim(0, length_x)
+        ax1.set_ylim(0, length_y)
+
+        # --- RIGHT PANEL: Momentum Space ---
+        if right_panel_mode == 'slice':
+            slice_density = frame[:, :, target_state]
+            sc2 = ax2.scatter(X_flat, Y_flat, c=slice_density.flatten(), cmap='viridis', marker='s', s=15)
+            ax2.set_title(f"Phase Space Slice [State {target_state}]")
+            ax2.set_xlabel("X Position (nm)")
+            ax2.set_ylabel("Y Position (nm)")
+            ax2.set_xlim(0, length_x)
+            ax2.set_ylim(0, length_y)
+
+        elif right_panel_mode == 'qgrid':
+            momentum_2d = np.zeros((len(unique_q1), len(unique_q2)))
+
+            # Sum out the unobserved axis to project 3D down to 2D
+            for q_idx in range(Nq):
+                density_in_state = np.sum(frame[:, :, q_idx])
+                val1 = q_vectors[q_idx, ax1_idx]
+                val2 = q_vectors[q_idx, ax2_idx]
+                idx1 = np.where(unique_q1 == val1)[0][0]
+                idx2 = np.where(unique_q2 == val2)[0][0]
+                momentum_2d[idx1, idx2] += density_in_state
+
+            sc2 = ax2.imshow(momentum_2d.T, origin='lower', cmap='plasma',
+                             extent=q_extent, interpolation='nearest')
+
+            ax2.set_title(f"Momentum Space Projection ({projection[0]}-{projection[1]} Plane)")
+            ax2.set_xlabel(f"q_{projection[0]}")
+            ax2.set_ylabel(f"q_{projection[1]}")
+
+        # Create colorbars
+        if not colorbar_created:
+            fig.colorbar(sc1, ax=ax1, fraction=0.046, pad=0.04).set_label("Total Mass")
+            fig.colorbar(sc2, ax=ax2, fraction=0.046, pad=0.04).set_label(
+                "Projected Mass in Q-Plane" if right_panel_mode == 'qgrid' else "Q-State Mass")
+            colorbar_created = True
+
+    # Compile and Save
+    ani = animation.FuncAnimation(fig, update, frames=len(frames), blit=False)
+    ani.save(filename, writer=PillowWriter(fps=20))
+
+    plt.close(fig)
+    print(f"GIF saved successfully as '{filename}'!")
+
 def export_diffusion_gif(frames, dt, save_interval, length_x, length_y, grid_x, grid_y,
                          right_panel_mode='qgrid', target_state=None, q_Nx=None, q_Ny=None,
                          filename="diffusion.gif"):

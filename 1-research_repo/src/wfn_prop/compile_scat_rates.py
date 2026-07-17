@@ -2,9 +2,9 @@ import h5py
 import scipy.constants as const
 import numpy as np
 
-xctph_h5 = "xctph.h5"
+xctph_h5 = "xctph_4x4x4.h5"
 bright_exciton_state = 0
-dark_exciton_state = 1
+dark_exciton_state = 2
 temp_K = 300
 sigma_eV = 0.02
 
@@ -13,9 +13,9 @@ HBAR_EV_FS = (const.hbar / const.e) * 1e15
 GOLDEN_RULE_PREFACTOR = (2.0 * np.pi) / HBAR_EV_FS
 
 # TODO: Extract these three exact values from your h5 / QE out files
-gamma_energy_eV = 1.85           # Placeholder: e.g., 1.85 eV for Pentacene
-dipole_strength_bohr_sq = 10.0   # Placeholder: Modulus square of the transition
-unit_cell_area_angstroms = 30.0  # Placeholder: a * b * sin(gamma)
+gamma_energy_eV = 12.68
+dipole_strength_bohr_sq = 9.1
+unit_cell_area_angstroms = 7.134
 
 
 # Open HDF5 file in read-only mode
@@ -205,7 +205,7 @@ def calc_radiative_rate_fs(omega_eV, dipole_sq_bohr, area_sq_angstrom):
     :param omega_eV: Exciton energy at Gamma (eV)
     :param dipole_sq_bohr: Modul
     :param area_sq_angstrom:
-    :return:
+    :return: radiative decay rate in femtoseconds
     """
     # Fundamental Constants in CGS
     e_esu = 4.80320425e-10         # Elementary charge
@@ -280,7 +280,7 @@ print(f"Corresponding Lifetime:    {1/radiative_rate_fs:.2f} fs")
 
 # Export the physics payload
 print("Exporting .npz (physics payload)...")
-output_filename = 'compiled_scat_rates_data.npz'
+output_filename = 'compiled_scat_rates_data_S0_S2.npz'
 np.savez(
     output_filename,
     Rate_BB=Rate_BB,
