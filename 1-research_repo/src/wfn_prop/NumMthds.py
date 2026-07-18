@@ -238,7 +238,5 @@ class RungeKutta4:
             # Save frames for the animation
             if (step + 1) % save_interval == 0:
                 history.append(np.copy(n_current))
-            else:
-                print("History not being saved")
 
         return history

@@ -11,10 +11,13 @@ requires-python = ">=3.8"
 dependencies = [
     "numpy",
     "matplotlib",
+    "scipy",
+    "h5py",
 ]
 
 [project.scripts]
 ct-analysis = "ct_character.main:main"
+wfn-run = "wfn_prop.main:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]
