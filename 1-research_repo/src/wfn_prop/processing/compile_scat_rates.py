@@ -2,7 +2,7 @@ import h5py
 import scipy.constants as const
 import numpy as np
 
-xctph_h5 = "xctph_4x4x4.h5"
+xctph_h5 = "xctph_8x8x8.h5"
 bright_exciton_state = 0
 dark_exciton_state = 2
 temp_K = 300
@@ -280,7 +280,7 @@ print(f"Corresponding Lifetime:    {1/radiative_rate_fs:.2f} fs")
 
 # Export the physics payload
 print("Exporting .npz (physics payload)...")
-output_filename = 'compiled_scat_rates_data_S0_S2.npz'
+output_filename = 'compiled_scat_rates_data_S0_S2_8x8x8.npz'
 np.savez(
     output_filename,
     Rate_BB=Rate_BB,
