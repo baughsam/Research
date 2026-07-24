@@ -181,7 +181,7 @@ def parseModes(outcar, nat, natC, vesta_front, vesta_end, scaling_factor, b, Car
         if "ELASTIC MODULI CONTR FROM IONIC RELAXATION (kBar)" in line:
             break
     #NORM = [float(t) for t in NORMS]
-    df_eig = {"Eigenfrequency (cm-1)": EVAL, "Eigenvector (dx)": EVECx, "Eigenvector (dy)": EVECy, "Eigenvector (dz)": EVECz, "Eigenvector mag": NORMS,"A projection":Aproj, "abs A projection": abs_Aproj, "B projection": Bproj, "abs B projection": abs_Bproj,  "C projection": Cproj, "abs C projection": abs_Bproj}
+    df_eig = {"Eigenfrequency (cm-1)": EVAL, "Eigenvector (dx)": EVECx, "Eigenvector (dy)": EVECy, "Eigenvector (dz)": EVECz, "Eigenvector mag": NORMS,"A projection":Aproj, "abs A projection": abs_Aproj, "B projection": Bproj, "abs B projection": abs_Bproj,  "C projection": Cproj, "abs C projection": abs_Cproj}
     df_eig = pd.DataFrame(df_eig)
     df_eig.to_csv("Eignfrequency_info.csv", index = False)
     grouped = df_eig.groupby(["Eigenfrequency (cm-1)"])
