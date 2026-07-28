@@ -1,7 +1,7 @@
 import numpy as np
 import argparse
 from wfn_prop.NumMthds import RungeKutta4, UpwindDifference2d, UpwindDifference3d, CentralDifference3d
-from wfn_prop.k_scat import Decay, FickDiff, PhononScat, two_state_transition_matrix
+from wfn_prop.k_scat import Decay, FickDiff, PhononScat, two_state_transition_matrix, intraband_transition_matrix
 import sys
 import os
 from wfn_prop.io import parse_input_file
@@ -177,13 +177,17 @@ def main():
     print("Initializing solvers...")
     advection_solver = CentralDifference3d(dx=delta_x, dy=delta_y, vel_x=v_x_array, vel_y=v_y_array)
 
-    scattering_obj = two_state_transition_matrix(
+    """scattering_obj = two_state_transition_matrix(
         k_BB=physics_payload['Rate_BB'],
         k_BD=physics_payload['Rate_BD'],
         gamma_decay_constant=physics_payload['radiative_rate'],
         map_Q_to_q=physics_payload['Q_plus_q_map'],
         gamma_index=physics_payload['gamma_index']
-    )
+    )"""
+
+    scattering_obj = intraband_transition_matrix(k_BB=physics_payload['Rate_BB'],
+                                                 map_Q_to_q= physics_payload['Q_plus_q_map'],
+                                                 )
 
     # Time Integration
     time_integrator = RungeKutta4(spatial_solver=advection_solver, total_sim_time=cfg['sim_time'],
