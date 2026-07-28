@@ -1,16 +1,26 @@
 import numpy as np
 import scipy.constants as const
 
-input_file = "ordered_raw_energies_state_1.npz"
+input_file = "ordered_raw_energies_state_1_8x8x8.npz"
 output_file = "final_velocity_payload.npz"
-HBAR_EV_FS = (const.hbar / const.e) * 1e15  # eV*fs
 
-print(f"Loading raw energies from {input_file}...")
+HBAR_EV_FS = (const.hbar / const.e) * 1e15  # eV*fs
+BOHR_TO_NM = const.physical_constants['Bohr radius'][0] * 1e9
+
+print(f"Loading raw data and lattice parameters from {input_file}...")
 data = np.load(input_file)
 Qpts = data['Qpts']
 energies_1D = data['energies']
+recip_lat_bohr = data['recip_lat']  # <-- Unpack the matrix directly from the payload
 
-# 1. Determine Grid Dimensions
+# --- Structural Coordinate Transformation ---
+# Convert reciprocal lattice to physical units (nm^-1)
+recip_lat_nm = recip_lat_bohr / BOHR_TO_NM
+
+# Build the transformation matrix: dE^{cart} = np.dot(inv(recip_lat.T), dE^{crys})
+trans_matrix = np.linalg.inv(recip_lat_nm.T)
+
+# 1. Determine Grid Dimensions (Fractional)
 q_x_unique = np.unique(Qpts[:, 0])
 q_y_unique = np.unique(Qpts[:, 1])
 q_z_unique = np.unique(Qpts[:, 2])
@@ -32,28 +42,34 @@ for q_idx, q_vec in enumerate(Qpts):
     E_3D[i, j, k] = energies_1D[q_idx]
     mapping_indices.append((i, j, k))
 
-# 3. Calculate 3D Velocity Gradient (With Periodic Boundaries)
+# 3. Calculate 3D Velocity Gradient in Crystal Coordinates (w/ Periodic Boundary Conditions)
 print("Calculating velocity field with periodic boundary padding...")
-
-# Wrap the edges of the Brillouin zone to enforce periodic boundaries
 E_3D_padded = np.pad(E_3D, pad_width=1, mode='wrap')
 
 # Calculate the gradient on the padded array
 grad_E_padded = np.gradient(E_3D_padded, dqx, dqy, dqz)
 
 # Slice off the artificial padding (index 1 to -1) to restore the original Nx, Ny, Nz dimensions,
-# then apply the HBAR_EV_FS constant to convert to proper velocity units.
-v_3D_x = grad_E_padded[0][1:-1, 1:-1, 1:-1] / HBAR_EV_FS
-v_3D_y = grad_E_padded[1][1:-1, 1:-1, 1:-1] / HBAR_EV_FS
-v_3D_z = grad_E_padded[2][1:-1, 1:-1, 1:-1] / HBAR_EV_FS
+grad_crys_x = grad_E_padded[0][1:-1, 1:-1, 1:-1]
+grad_crys_y = grad_E_padded[1][1:-1, 1:-1, 1:-1]
+grad_crys_z = grad_E_padded[2][1:-1, 1:-1, 1:-1]
 
-# 4. Flatten back to 1D arrays using the original order
+# 4. Transform to Cartesian Velocities and Flatten
+print("Applying structural tensor transformation to Cartesian coordinates...")
 v_x_1D, v_y_1D, v_z_1D = np.zeros(len(Qpts)), np.zeros(len(Qpts)), np.zeros(len(Qpts))
 
 for q_idx, (i, j, k) in enumerate(mapping_indices):
-    v_x_1D[q_idx] = v_3D_x[i, j, k]
-    v_y_1D[q_idx] = v_3D_y[i, j, k]
-    v_z_1D[q_idx] = v_3D_z[i, j, k]
+    dE_crys = np.array([grad_crys_x[i, j, k],
+                        grad_crys_y[i, j, k],
+                        grad_crys_z[i, j, k]])
+
+    # Execute the projection onto true X, Y, Z axes
+    dE_cart = np.dot(trans_matrix, dE_crys)
+
+    # Convert to physical velocity (nm/fs)
+    v_x_1D[q_idx] = dE_cart[0] / HBAR_EV_FS
+    v_y_1D[q_idx] = dE_cart[1] / HBAR_EV_FS
+    v_z_1D[q_idx] = dE_cart[2] / HBAR_EV_FS
 
 np.savez(output_file, vel_x=v_x_1D, vel_y=v_y_1D, vel_z=v_z_1D, energy=energies_1D, Qpts=Qpts)
-print(f"SUCCESS: Velocities calculated and saved to {output_file}.")
+print(f"SUCCESS: Physical Cartesian velocities calculated and saved to {output_file}.")
