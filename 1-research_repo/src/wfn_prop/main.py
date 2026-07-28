@@ -189,7 +189,7 @@ def main():
                                                  map_Q_to_q= physics_payload['Q_plus_q_map'],
                                                  )
 
-    # Time Integration
+    """# Time Integration
     time_integrator = RungeKutta4(spatial_solver=advection_solver, total_sim_time=cfg['sim_time'],
                                   scattering_solver=scattering_obj)
     frames = time_integrator.solve(occupation_matrix_3d, save_interval=2)
@@ -204,7 +204,20 @@ def main():
 
     # Close file streams cleanly
     sys.stdout = logger.terminal
-    logger.close()
+    logger.close()"""
+
+    # Time Integration
+    time_integrator = RungeKutta4(spatial_solver=advection_solver, total_sim_time=cfg['sim_time'],
+                                  scattering_solver=scattering_obj)
+
+    # This now returns the path to your .h5 file
+    output_data_path = time_integrator.solve(
+        occupation_matrix_3d,
+        save_interval=2,
+        output_file=f"./{cfg['gif_filename']}_frames.h5"
+    )
+
+    print(f"SUCCESS: Raw frames exported to {output_data_path}.")
 
 
 if __name__ == "__main__":
