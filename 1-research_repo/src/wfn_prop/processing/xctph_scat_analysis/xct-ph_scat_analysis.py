@@ -242,74 +242,117 @@ if __name__ == "__main__":
     # Set a uniform visual length for all arrows
     arrow_length = 0.5
 
+    # Identify the q_z = 0 plane to prevent 3D arrow overlapping
+    unique_qz = np.unique(qpts[:, 2])
+    target_qz = unique_qz[np.argmin(np.abs(unique_qz))]
+    qz_mask = np.isclose(qpts[:, 2], target_qz)
+
+    # Create a sliced version of qpts for the coordinate search
+    qpts_slice = qpts[qz_mask]
+
     # --- Panel 1: Intraband (SB -> SB) ---
-    origin_x_BB = np.zeros_like(q_x_BB)
-    origin_y_BB = np.zeros_like(q_y_BB)
+    # Apply the mask to isolate only the target plane
+    q_x_BB_slice = q_x_BB[qz_mask]
+    q_y_BB_slice = q_y_BB[qz_mask]
+    q_mom_rate_BB_slice = q_mom_rate_BB[qz_mask]
+
+    origin_x_BB = np.zeros_like(q_x_BB_slice)
+    origin_y_BB = np.zeros_like(q_y_BB_slice)
 
     # Normalize vectors to a magnitude of 1, then scale to arrow_length
-    r_BB = np.sqrt(q_x_BB ** 2 + q_y_BB ** 2)
-    r_BB_safe = np.where(r_BB == 0, 1, r_BB)  # Prevent division by zero at the origin
-    q_x_BB_norm = (q_x_BB / r_BB_safe) * arrow_length
-    q_y_BB_norm = (q_y_BB / r_BB_safe) * arrow_length
+    r_BB = np.sqrt(q_x_BB_slice ** 2 + q_y_BB_slice ** 2)
+    r_BB_safe = np.where(r_BB == 0, 1, r_BB)
+    q_x_BB_norm = (q_x_BB_slice / r_BB_safe) * arrow_length
+    q_y_BB_norm = (q_y_BB_slice / r_BB_safe) * arrow_length
 
-    # Extract exact bounds to maximize color contrast
-    vmin_BB = np.min(q_mom_rate_BB)
-    vmax_BB = np.max(q_mom_rate_BB)
+    # Extract bounds from the sliced data
+    vmin_BB = np.min(q_mom_rate_BB_slice)
+    vmax_BB = np.max(q_mom_rate_BB_slice)
 
-    # Plot normalized arrows with explicit color bounds via Normalize
-    quiver_BB = ax3.quiver(origin_x_BB, origin_y_BB, q_x_BB_norm, q_y_BB_norm, q_mom_rate_BB,
+    quiver_BB = ax3.quiver(origin_x_BB, origin_y_BB, q_x_BB_norm, q_y_BB_norm, q_mom_rate_BB_slice,
                            cmap='Blues', angles='xy', scale_units='xy', scale=1,
                            norm=plt.Normalize(vmin=vmin_BB, vmax=vmax_BB))
 
-    ax3.set_title(f"Intraband (${S1} \\rightarrow {S1}$)")
+    # Add a dot at q=0 to represent the origin rate visually
+    gamma_idx_BB = np.where((qpts_slice[:, 0] == 0) & (qpts_slice[:, 1] == 0) & (qpts_slice[:, 2] == 0))[0][0]
+    rate_gamma_BB = q_mom_rate_BB_slice[gamma_idx_BB]
+    ax3.scatter(0, 0, c=[rate_gamma_BB], cmap='Blues', norm=plt.Normalize(vmin=vmin_BB, vmax=vmax_BB),
+                s=60, zorder=3, edgecolors='black', linewidth=0.5)
+
+    # Text annotations for the rates and axes
+    ax3.text(0.02, 0.02, rf"$\Gamma_{{q=0}} = {rate_gamma_BB:.2e} \ fs^{{-1}}$",
+             transform=ax3.transAxes, fontsize=10, verticalalignment='bottom')
+    ax3.text(0.55, 0.0, '$q_x$', fontsize=12, va='center', ha='left')
+    ax3.text(0.0, 0.55, '$q_y$', fontsize=12, ha='center', va='bottom')
+
+    ax3.set_title(f"Intraband (${S1} \\rightarrow {S1}$) | $q_z = {target_qz:.2f}$")
     ax3.set_xlim(-0.6, 0.6)
     ax3.set_ylim(-0.6, 0.6)
     ax3.set_aspect('equal')
-    ax3.axis('off')  # Removes the bounding box, ticks, and labels
+    ax3.axis('off')
 
-    # Horizontal colorbar with scientific formatting
     cbar_BB = fig2.colorbar(quiver_BB, ax=ax3, orientation='horizontal', shrink=0.6, pad=0.05)
     formatter_BB = ticker.ScalarFormatter(useMathText=False)
-    formatter_BB.set_powerlimits((0, 0))  # Automatically extracts 1e-X
+    formatter_BB.set_powerlimits((0, 0))
     cbar_BB.ax.xaxis.set_major_formatter(formatter_BB)
-    cbar_BB.set_label(rf'$\Gamma_q^{{{S1} {S1}}} \ [fs^{-1}]$')
+    cbar_BB.set_label(rf'$\Gamma_q^{{{S1} {S1}}} \ [fs^{{-1}}]$')
 
     # --- Panel 2: Interband (SB -> SD) ---
-    origin_x_BD = np.zeros_like(q_x_BD)
-    origin_y_BD = np.zeros_like(q_y_BD)
+    # Apply the mask to isolate only the target plane
+    q_x_BD_slice = q_x_BD[qz_mask]
+    q_y_BD_slice = q_y_BD[qz_mask]
+    q_mom_rate_BD_slice = q_mom_rate_BD[qz_mask]
+
+    origin_x_BD = np.zeros_like(q_x_BD_slice)
+    origin_y_BD = np.zeros_like(q_y_BD_slice)
 
     # Normalize vectors to a magnitude of 1, then scale to arrow_length
-    r_BD = np.sqrt(q_x_BD ** 2 + q_y_BD ** 2)
-    r_BD_safe = np.where(r_BD == 0, 1, r_BD)  # Prevent division by zero at the origin
-    q_x_BD_norm = (q_x_BD / r_BD_safe) * arrow_length
-    q_y_BD_norm = (q_y_BD / r_BD_safe) * arrow_length
+    r_BD = np.sqrt(q_x_BD_slice ** 2 + q_y_BD_slice ** 2)
+    r_BD_safe = np.where(r_BD == 0, 1, r_BD)
+    q_x_BD_norm = (q_x_BD_slice / r_BD_safe) * arrow_length
+    q_y_BD_norm = (q_y_BD_slice / r_BD_safe) * arrow_length
 
-    # Extract exact bounds to maximize color contrast
-    vmin_BD = np.min(q_mom_rate_BD)
-    vmax_BD = np.max(q_mom_rate_BD)
+    # Extract bounds from the sliced data
+    vmin_BD = np.min(q_mom_rate_BD_slice)
+    vmax_BD = np.max(q_mom_rate_BD_slice)
 
-    # Plot normalized arrows with explicit color bounds via Normalize
-    quiver_BD = ax4.quiver(origin_x_BD, origin_y_BD, q_x_BD_norm, q_y_BD_norm, q_mom_rate_BD,
+    quiver_BD = ax4.quiver(origin_x_BD, origin_y_BD, q_x_BD_norm, q_y_BD_norm, q_mom_rate_BD_slice,
                            cmap='Greys', angles='xy', scale_units='xy', scale=1,
                            norm=plt.Normalize(vmin=vmin_BD, vmax=vmax_BD))
 
-    ax4.set_title(f"Interband (${S1} \\rightarrow {S2}$)")
+    # Add a dot at q=0 to represent the origin rate visually
+    gamma_idx_BD = np.where((qpts_slice[:, 0] == 0) & (qpts_slice[:, 1] == 0) & (qpts_slice[:, 2] == 0))[0][0]
+    rate_gamma_BD = q_mom_rate_BD_slice[gamma_idx_BD]
+    ax4.scatter(0, 0, c=[rate_gamma_BD], cmap='Greys', norm=plt.Normalize(vmin=vmin_BD, vmax=vmax_BD),
+                s=60, zorder=3, edgecolors='black', linewidth=0.5)
+
+    # Text annotations for the rates and axes
+    ax4.text(0.02, 0.02, rf"$\Gamma_{{q=0}} = {rate_gamma_BD:.2e} \ fs^{{-1}}$",
+             transform=ax4.transAxes, fontsize=10, verticalalignment='bottom')
+    ax4.text(0.55, 0.0, '$q_x$', fontsize=12, va='center', ha='left')
+    ax4.text(0.0, 0.55, '$q_y$', fontsize=12, ha='center', va='bottom')
+
+    ax4.set_title(f"Interband (${S1} \\rightarrow {S2}$) | $q_z = {target_qz:.2f}$")
     ax4.set_xlim(-0.6, 0.6)
     ax4.set_ylim(-0.6, 0.6)
     ax4.set_aspect('equal')
-    ax4.axis('off')  # Removes the bounding box, ticks, and labels
+    ax4.axis('off')
 
-    # Horizontal colorbar with scientific formatting
     cbar_BD = fig2.colorbar(quiver_BD, ax=ax4, orientation='horizontal', shrink=0.6, pad=0.05)
     formatter_BD = ticker.ScalarFormatter(useMathText=False)
-    formatter_BD.set_powerlimits((0, 0))  # Automatically extracts 1e-X
+    formatter_BD.set_powerlimits((0, 0))
     cbar_BD.ax.xaxis.set_major_formatter(formatter_BD)
-    cbar_BD.set_label(rf'$\Gamma_q^{{{S1} {S2}}} \ [fs^{-1}]$')
+    cbar_BD.set_label(rf'$\Gamma_q^{{{S1} {S2}}} \ [fs^{{-1}}]$')
 
     plt.tight_layout()
-    plt.savefig(f"Fig2b_Momentum_Resolved_Rates_{S1}_{S2}.png", dpi=300)
+    plt.savefig(f"DEBUGGING2_Fig2b_Momentum_Resolved_Rates_{S1}_{S2}.png", dpi=300)
     plt.show()
     print(f"Analysis complete. Saved to Fig2b_Momentum_Resolved_Rates_{S1}_{S2}.png")
+
+
+
+
+
 
     # --- PLOTTING FIG 2(c) ---
     print("Generating scattering times per exciton momentum plots...")
