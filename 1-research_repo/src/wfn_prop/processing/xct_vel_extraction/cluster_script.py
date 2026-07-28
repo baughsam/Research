@@ -4,8 +4,13 @@ import numpy as np
 import h5py
 
 target_state = 1  # Exciton state to extract
-xctph_h5_path = "xctph.h5"
-output_file = f"ordered_raw_energies_state_{target_state}.npz"
+
+# Define the master directory where the .h5 files live
+h5_dir = "/projectnb/fpmats/samson/BGW_tutorial/LiF/05-xctph/8x8x8_LiF/" #example path
+xctph_h5_path = os.path.join(h5_dir, "xctph.h5")
+eph_h5_path = os.path.join(h5_dir, "eph.h5")
+
+output_file = f"ordered_raw_energies_state_{target_state}_8x8x8.npz"
 
 print("Reading master Qpts array from xctph.h5...")
 with h5py.File(xctph_h5_path, 'r') as f:
