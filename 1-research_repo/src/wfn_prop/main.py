@@ -211,7 +211,7 @@ def main():
                                   scattering_solver=scattering_obj)
 
     # This now returns the path to your .h5 file
-    output_data_path = time_integrator.solve(
+    output_data_path = time_integrator.solve_hdf5_compressed(
         occupation_matrix_3d,
         save_interval=2,
         output_file=f"./{cfg['gif_filename']}_frames.h5"
