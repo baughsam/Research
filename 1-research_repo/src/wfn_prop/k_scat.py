@@ -127,3 +127,57 @@ class two_state_transition_matrix(Kscat):
 
         scattered_array = np.einsum('ij, xyi -> xyj', self.transition_matrix, array_3d)
         return scattered_array
+
+@dataclass
+class intraband_transition_matrix(Kscat):
+    """
+    Constructs an isolated intraband (Bright to Bright) scattering matrix.
+    Ignores interband scattering and radiative recombination.
+    """
+    # Shape: (N_Q, N_Q)
+    k_BB: np.ndarray
+    map_Q_to_q: np.ndarray
+    transition_matrix: np.ndarray = field(init=False)
+
+    def __post_init__(self):
+        """
+        Builds the static K_scat matrix from the provided raw physics arrays.
+        """
+        self.transition_matrix = self._build_operator()
+
+    def _build_operator(self) -> np.ndarray:
+        # Check matrix sizes
+        N_Q, N_q = self.k_BB.shape
+
+        assert self.map_Q_to_q.shape == (N_Q, N_q), "FATAL: Mapping array shape does not match the rate arrays."
+
+        print(f"Initializing isolated intraband_transition_matrix operator of size ({N_Q}, {N_Q})...")
+
+        # Initialize empty matrix
+        K_scat = np.zeros((N_Q, N_Q))
+
+        # Build diagonal (Losses - ONLY BB)
+        sum_k_BB = np.sum(self.k_BB, axis=1)
+
+        # Build off-diagonals (Gains)
+        for i in range(N_Q):
+            for j in range(N_q):
+                rate = self.k_BB[i,j]
+                Q_final = self.map_Q_to_q[i, j]
+                K_scat[Q_final, i] += rate
+
+        # Put diagonal in K_scat
+        for i in range(N_Q):
+            K_scat[i,i] = -sum_k_BB[i]
+
+        return K_scat
+
+    def calc_scattering(self, array_3d: np.ndarray) -> np.ndarray:
+        """
+        Executes the scattering step during the RK4 loop using Einstein summation.
+        """
+        if array_3d is None:
+            raise ValueError("Error: 'array_3d' is empty.")
+
+        scattered_array = np.einsum('ij, xyi -> xyj', self.transition_matrix, array_3d)
+        return scattered_array
