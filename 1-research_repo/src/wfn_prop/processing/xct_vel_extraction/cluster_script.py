@@ -12,6 +12,11 @@ with h5py.File(xctph_h5_path, 'r') as f:
     master_Qpts = f['Qpts'][:]
 N_Q = len(master_Qpts)
 
+# Extract the reciprocal lattice matrix
+print("Reading reciprocal lattice from eph.h5...")
+with h5py.File(eph_h5_path, 'r') as f:
+    recip_lat_bohr = f['gkq_header/recip_lat'][()]
+
 ordered_energies = np.zeros(N_Q)
 
 print(f"Extracting energies for {N_Q} Q-points based on alphabetical glob ordering...")
