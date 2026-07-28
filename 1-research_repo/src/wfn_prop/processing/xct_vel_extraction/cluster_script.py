@@ -44,5 +44,5 @@ for q_idx in range(N_Q):
 
         ordered_energies[q_idx] = float(valid_lines[target_state - 1].split()[0])
 
-np.savez(output_file, Qpts=master_Qpts, energies=ordered_energies)
+np.savez(output_file, Qpts=master_Qpts, energies=ordered_energies, recip_lat=recip_lat_bohr)
 print(f"SUCCESS: Exported {output_file}. Ready to download to local machine.")
