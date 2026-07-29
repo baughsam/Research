@@ -8,7 +8,6 @@ import matplotlib.ticker as ticker
 RY_TO_EV = 13.605698
 HBAR_EV_FS = (const.hbar / const.e) * 1e15
 GOLDEN_RULE_PREFACTOR = (2.0 * np.pi) / HBAR_EV_FS
-BOHR_TO_NM = const.physical_constants['Bohr radius'][0] * 1e9
 
 temp_K = 300
 sigma_eV = 0.02
@@ -21,7 +20,6 @@ S2 = f"S_{str(dark_exciton_state)}"
 # Target your local xctph file
 # (Matches the 4x4x4 grid from your corrections)
 xctph_h5 = "xctph_4x4x4.h5"
-raw_energies_file = "../xct_vel_extraction/ordered_raw_energies_state_1_4x4x4.npz"
 
 
 # --- CORE PHYSICS FUNCTIONS ---
@@ -161,13 +159,6 @@ def compute_exciton_momentum_resolved_times(
 
 # --- MAIN EXECUTION BLOCK ---
 if __name__ == "__main__":
-    print(f"Loading lattice parameters from {raw_energies_file}...")
-    recip_lat_data = np.load(raw_energies_file)
-    recip_lat_bohr = recip_lat_data['recip_lat']
-
-    #Convert to nm-1 for consistency
-    recip_lat_nm = recip_lat_bohr / BOHR_TO_NM
-
     print(f"Loading data from {xctph_h5}...")
     with h5py.File(xctph_h5, mode='r') as f:
         g_tensor = f['xctph'][:] * RY_TO_EV
@@ -178,10 +169,6 @@ if __name__ == "__main__":
         N_q = f['nq'][()]
         qpts = f['qpts'][:]
         Qpts = f['Qpts'][:]
-
-    print("Applying tensor transformation (frac -> cart)...")
-    qpts_cart = np.dot(qpts, recip_lat_nm.T)
-    Qpts_cart = np.dot(Qpts, recip_lat_nm.T)
 
     print("Computing Intraband Rates (S_B -> S_B)...")
     # FIG 2(a)
