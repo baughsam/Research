@@ -4,13 +4,23 @@ import numpy as np
 import h5py
 
 target_state = 1  # Exciton state to extract
-xctph_h5_path = "xctph.h5"
-output_file = f"ordered_raw_energies_state_{target_state}.npz"
+
+# Define the master directory where the .h5 files live
+h5_dir = "/projectnb/fpmats/samson/BGW_tutorial/LiF/05-xctph/8x8x8_LiF/" #example path
+xctph_h5_path = os.path.join(h5_dir, "xctph.h5")
+eph_h5_path = os.path.join(h5_dir, "eph.h5")
+
+output_file = f"ordered_raw_energies_state_{target_state}_8x8x8.npz"
 
 print("Reading master Qpts array from xctph.h5...")
 with h5py.File(xctph_h5_path, 'r') as f:
     master_Qpts = f['Qpts'][:]
 N_Q = len(master_Qpts)
+
+# Extract the reciprocal lattice matrix
+print("Reading reciprocal lattice from eph.h5...")
+with h5py.File(eph_h5_path, 'r') as f:
+    recip_lat_bohr = f['gkq_header/recip_lat'][()]
 
 ordered_energies = np.zeros(N_Q)
 
@@ -39,5 +49,5 @@ for q_idx in range(N_Q):
 
         ordered_energies[q_idx] = float(valid_lines[target_state - 1].split()[0])
 
-np.savez(output_file, Qpts=master_Qpts, energies=ordered_energies)
+np.savez(output_file, Qpts=master_Qpts, energies=ordered_energies, recip_lat=recip_lat_bohr)
 print(f"SUCCESS: Exported {output_file}. Ready to download to local machine.")

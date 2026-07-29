@@ -263,6 +263,7 @@ class RungeKutta4:
                 compression="gzip",  # Shrinks the file size on disk
                 compression_opts=4
             )
+            f.attrs['dt'] = self.dt
 
             # Save the initial conditions
             dset[0] = n_current.astype(np.float32)
