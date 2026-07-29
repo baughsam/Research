@@ -129,7 +129,7 @@ def export_diffusion_gif_updated2(frames, dt, save_interval, length_x, length_y,
 
 
 
-def export_diffusion_gif_updated(frames, dt, save_interval, length_x, length_y, grid_x, grid_y,
+def export_diffusion_gif_updated1(frames, dt, save_interval, length_x, length_y, grid_x, grid_y,
                          right_panel_mode='qgrid', target_state=None,
                          q_vectors=None, projection=('x', 'y'),  # <-- New Arguments
                          filename="diffusion.gif"):
