@@ -240,3 +240,58 @@ class RungeKutta4:
                 history.append(np.copy(n_current))
 
         return history
+
+    def solve_hdf5_compressed(self, n_initial: np.ndarray, save_interval: int = 10, output_file: str = "full_history.h5") -> str:
+        """
+        Executes the explicit RK4 time integration.
+        Streams the full 3D tensor directly to an HDF5 file on disk to prevent RAM overflow.
+        """
+        import h5py
+
+        n_current = np.copy(n_initial)
+        Nx, Ny, Nq = n_current.shape
+
+        print(f"Streaming full 3D tensor history to {output_file} to preserve RAM...")
+
+        with h5py.File(output_file, 'w') as f:
+            # Create a dynamically resizable dataset chunked for performance
+            dset = f.create_dataset(
+                "frames",
+                shape=(1, Nx, Ny, Nq),
+                maxshape=(None, Nx, Ny, Nq),
+                dtype=np.float32,
+                compression="gzip",  # Shrinks the file size on disk
+                compression_opts=4
+            )
+
+            # Save the initial conditions
+            dset[0] = n_current.astype(np.float32)
+            frame_count = 1
+
+            for step in range(self.num_steps):
+
+                k1_scat = self.scattering_solver.calc_scattering(n_current) if self.scattering_solver else 0.0
+                k1 = self.spatial_solver.upwindDifference(n_current) + k1_scat
+
+                n_temp1 = n_current + k1 * (self.dt / 2.0)
+                k2_scat = self.scattering_solver.calc_scattering(n_temp1) if self.scattering_solver else 0.0
+                k2 = self.spatial_solver.upwindDifference(n_temp1) + k2_scat
+
+                n_temp2 = n_current + k2 * (self.dt / 2.0)
+                k3_scat = self.scattering_solver.calc_scattering(n_temp2) if self.scattering_solver else 0.0
+                k3 = self.spatial_solver.upwindDifference(n_temp2) + k3_scat
+
+                n_temp3 = n_current + k3 * self.dt
+                k4_scat = self.scattering_solver.calc_scattering(n_temp3) if self.scattering_solver else 0.0
+                k4 = self.spatial_solver.upwindDifference(n_temp3) + k4_scat
+
+                n_current = n_current + (self.dt / 6.0) * (k1 + 2 * k2 + 2 * k3 + k4)
+
+                # Stream to disk and discard from RAM
+                if (step + 1) % save_interval == 0:
+                    dset.resize(frame_count + 1, axis=0)  # Expand the file by 1 frame
+                    dset[frame_count] = n_current.astype(np.float32)  # Write directly to disk
+                    frame_count += 1
+
+        print("Integration complete. Full phase-space history safely secured on disk.")
+        return output_file  # Return the file path instead of the array list
