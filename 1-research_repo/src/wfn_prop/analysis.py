@@ -4,6 +4,131 @@ import matplotlib.animation as animation
 from matplotlib.animation import PillowWriter
 
 
+def export_diffusion_gif_updated2(frames, dt, save_interval, length_x, length_y, grid_x, grid_y,
+                                 right_panel_mode='qgrid', target_state=None,
+                                 q_vectors=None, projection=('x', 'y'),
+                                 filename="diffusion.gif"):
+    """
+    Exports a two-panel animated GIF.
+    Optimized to eliminate flickering by finding true global limits,
+    and uses pre-calculated projections to speed up rendering.
+    Also capping the physical limits in the visualization gives a more
+    intuitive picture of "exciton mass" flow across momentum and spatial grids.
+    """
+    print(f"Rendering two-panel GIF to {filename} (This might take a minute)...")
+
+    Nq = frames[0].shape[2]
+
+    if right_panel_mode == 'slice':
+        if target_state is None or target_state < 0 or target_state >= Nq:
+            raise ValueError(f"Invalid target_state. Must be between 0 and {Nq - 1}.")
+
+    elif right_panel_mode == 'qgrid':
+        if q_vectors is None:
+            raise ValueError("q_vectors must be provided for 3D qgrid projection.")
+
+        axis_map = {'x': 0, 'y': 1, 'z': 2}
+        ax1_idx = axis_map[projection[0]]
+        ax2_idx = axis_map[projection[1]]
+
+        unique_q1 = np.unique(q_vectors[:, ax1_idx])
+        unique_q2 = np.unique(q_vectors[:, ax2_idx])
+
+        dq1 = (unique_q1[1] - unique_q1[0]) if len(unique_q1) > 1 else 1.0
+        dq2 = (unique_q2[1] - unique_q2[0]) if len(unique_q2) > 1 else 1.0
+        q_extent = [unique_q1.min() - dq1 / 2, unique_q1.max() + dq1 / 2,
+                    unique_q2.min() - dq2 / 2, unique_q2.max() + dq2 / 2]
+
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(14, 6))
+    physical_time_per_frame = dt * save_interval
+
+    # --- 1. SETUP LEFT PANEL (REAL SPACE) ---
+    print("Locking Real-Space scale...")
+    # The spatial edges drop to true zero, so vmin=0 is physically correct here
+    global_max_spatial = np.max(np.sum(frames[0], axis=2))
+
+    init_total_density = np.sum(frames[0], axis=2)
+    im1 = ax1.imshow(init_total_density.T, origin='lower', cmap='magma',
+                     extent=[0, length_x, 0, length_y], interpolation='nearest',
+                     vmin=0, vmax=global_max_spatial)
+
+    ax1.set_xlabel("X Position (nm)")
+    ax1.set_ylabel("Y Position (nm)")
+    fig.colorbar(im1, ax=ax1, fraction=0.046, pad=0.04).set_label("Total Mass")
+
+    # --- 2. SETUP RIGHT PANEL & PRE-CALCULATE ---
+    print("Pre-calculating Q-Grid history to lock true contrast limits...")
+    if right_panel_mode == 'slice':
+        # Fast extraction of the target slice across all frames
+        slice_history = [f[:, :, target_state] for f in frames]
+        vmin_slice = np.min(slice_history)
+        vmax_slice = np.max(slice_history)
+
+        im2 = ax2.imshow(slice_history[0].T, origin='lower', cmap='viridis',
+                         extent=[0, length_x, 0, length_y], interpolation='nearest',
+                         vmin=vmin_slice, vmax=vmax_slice)
+
+        ax2.set_xlabel("X Position (nm)")
+        ax2.set_ylabel("Y Position (nm)")
+        fig.colorbar(im2, ax=ax2, fraction=0.046, pad=0.04).set_label(f"Q-State {target_state} Mass")
+
+    elif right_panel_mode == 'qgrid':
+        q_history = []
+        for f in frames:
+            # Sum spatial axes (0 and 1) to get total mass per Q-state[cite: 7]
+            mass_per_state = np.sum(f, axis=(0, 1))
+
+            momentum_2d = np.zeros((len(unique_q1), len(unique_q2)))
+            for q_idx in range(Nq):
+                val1 = q_vectors[q_idx, ax1_idx]
+                val2 = q_vectors[q_idx, ax2_idx]
+                idx1 = np.where(unique_q1 == val1)[0][0]
+                idx2 = np.where(unique_q2 == val2)[0][0]
+                momentum_2d[idx1, idx2] += mass_per_state[q_idx]
+
+            q_history.append(momentum_2d)
+
+        # Lock to the absolute minimum and maximum found in the simulation
+        vmin_mom = np.min(q_history)
+        vmax_mom = np.max(q_history)
+
+        im2 = ax2.imshow(q_history[0].T, origin='lower', cmap='plasma',
+                         extent=q_extent, interpolation='nearest',
+                         vmin=vmin_mom, vmax=vmax_mom)
+
+        ax2.set_xlabel(f"q_{projection[0]}")
+        ax2.set_ylabel(f"q_{projection[1]}")
+        fig.colorbar(im2, ax=ax2, fraction=0.046, pad=0.04).set_label("Projected Mass in Q-Plane")
+
+    # --- 3. FAST UPDATE FUNCTION ---
+    def update(frame_idx):
+        current_time_fs = frame_idx * physical_time_per_frame
+
+        # Update left panel
+        total_density = np.sum(frames[frame_idx], axis=2)
+        im1.set_data(total_density.T)
+        ax1.set_title(f"Total Exciton Density | Time: {current_time_fs:.3f} fs")
+
+        # Instantly update right panel using the pre-calculated history
+        if right_panel_mode == 'slice':
+            im2.set_data(slice_history[frame_idx].T)
+            ax2.set_title(f"Phase Space Slice [State {target_state}]")
+
+        elif right_panel_mode == 'qgrid':
+            im2.set_data(q_history[frame_idx].T)
+            ax2.set_title(f"Momentum Space Projection ({projection[0]}-{projection[1]} Plane)")
+
+        return [im1, im2]
+
+    # Render animation
+    ani = animation.FuncAnimation(fig, update, frames=len(frames), blit=False)
+    ani.save(filename, writer=PillowWriter(fps=20))
+
+    plt.close(fig)
+    print(f"GIF saved successfully as '{filename}'!")
+
+
+
 def export_diffusion_gif_updated(frames, dt, save_interval, length_x, length_y, grid_x, grid_y,
                          right_panel_mode='qgrid', target_state=None,
                          q_vectors=None, projection=('x', 'y'),  # <-- New Arguments
