@@ -303,6 +303,23 @@ if __name__ == "__main__":
     q_y_BD_slice = q_y_BD[qz_mask]
     q_mom_rate_BD_slice = q_mom_rate_BD[qz_mask]
 
+    # --- WRITE 2b.log ---
+    print("Writing momentum scattering rates to 2b.log...")
+    with open("test1_2b_8x8x8.log", "w") as log:
+        log.write(f"Scattering Rates for qz = {target_qz:.3f} plane (Fractional Coordinates)\n")
+        log.write("-" * 75 + "\n")
+        log.write(
+            f"{'qx':>8} {'qy':>8} {'qz':>8} | {'Intraband (SB->SB) [fs^-1]':>22} | {'Interband (SB->SD) [fs^-1]':>22}\n")
+        log.write("-" * 75 + "\n")
+
+        for i in range(len(qpts_slice)):
+            qx, qy, qz = qpts_slice[i]
+            rate_BB = q_mom_rate_BB_slice[i]
+            rate_BD = q_mom_rate_BD_slice[i]
+            log.write(f"{qx:8.3f} {qy:8.3f} {qz:8.3f} | {rate_BB:22.6e} | {rate_BD:22.6e}\n")
+
+        log.write("-" * 75 + "\n")
+
     origin_x_BD = np.zeros_like(q_x_BD_slice)
     origin_y_BD = np.zeros_like(q_y_BD_slice)
 
