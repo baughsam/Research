@@ -20,6 +20,8 @@ S2 = f"S_{str(dark_exciton_state)}"
 # Target your local xctph file
 # (Matches the 4x4x4 grid from your corrections)
 xctph_h5 = "xctph_4x4x4.h5"
+#xctph_h5 = 'xctph_8x8x8.h5'
+suffix='_4x4x4'
 
 
 # --- CORE PHYSICS FUNCTIONS ---
@@ -226,9 +228,9 @@ if __name__ == "__main__":
     ax2.ticklabel_format(style='sci', axis='y', scilimits=(0, 0))
 
     plt.tight_layout()
-    plt.savefig(f"Fig2a_Mode_Resolved_Rates_{S1}_{S2}.png", dpi=300)
+    plt.savefig(f"Fig2a_Mode_Resolved_Rates_{S1}_{S2}{suffix}.png", dpi=300)
     plt.show()
-    print(f"Analysis complete. Saved to Fig2a_Mode_Resolved_Rates_{S1}_{S2}.png")
+    print(f"Analysis complete. Saved to Fig2a_Mode_Resolved_Rates_{S1}_{S2}{suffix}.png")
 
 
 
@@ -362,9 +364,9 @@ if __name__ == "__main__":
     cbar_BD.set_label(rf'$\Gamma_q^{{{S1} {S2}}} \ [fs^{{-1}}]$')
 
     plt.tight_layout()
-    plt.savefig(f"DEBUGGING2_Fig2b_Momentum_Resolved_Rates_{S1}_{S2}.png", dpi=300)
+    plt.savefig(f"DEBUGGING1_Fig2b_Momentum_Resolved_Rates_{S1}_{S2}{suffix}.png", dpi=300)
     plt.show()
-    print(f"Analysis complete. Saved to Fig2b_Momentum_Resolved_Rates_{S1}_{S2}.png")
+    print(f"Analysis complete. Saved.")
 
 
 
@@ -433,7 +435,7 @@ if __name__ == "__main__":
     cbar_BD.set_label(rf'$\Gamma_Q^{{{S1} {S2} -1}}$ [fs]')
 
     plt.tight_layout()
-    plt.savefig(f"Fig2c_Exciton_Momentum_Rates_{S1}_{S2}.png", dpi=300)
+    plt.savefig(f"Fig2c_Exciton_Momentum_Rates_{S1}_{S2}{suffix}.png", dpi=300)
     plt.show()
-    print(f"Analysis complete. Saved to Fig2c_Exciton_Momentum_Rates_{S1}_{S2}.png")
+    print(f"Analysis complete. Saved to Fig2c_Exciton_Momentum_Rates_{S1}_{S2}{suffix}.png")
 
