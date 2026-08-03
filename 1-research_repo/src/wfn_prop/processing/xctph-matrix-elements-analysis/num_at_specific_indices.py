@@ -1,16 +1,16 @@
 import h5py
 
-xctph_h5 = "../../xctph_4x4x4.h5"
+xctph_h5 = "../../xctph_8x8x8.h5"
 
 prefix = "8x8x8"
-log_file_Qpts = f"{prefix}_Qpts"
-log_file_qpts = f"{prefix}_qpts"
-log_file_freq = f"{prefix}_freq"
-log_file_energies = f"{prefix}_energies"
+log_file_Qpts = f'{prefix}_Qpts'
+log_file_qpts = f'{prefix}_qpts'
+log_file_freq = f'{prefix}_freq'
+log_file_energies = f'{prefix}_energies'
 
 state_1 = 0
-state_2 = 2
-Q_state = 0
+state_2 = 1
+Q_state =4
 q_state = 0
 phonon_mode = 4
 
@@ -36,7 +36,9 @@ with open(log_file_qpts, "w") as log:
         log.write(f"{item}\n")
 with open(log_file_freq, "w") as log:
     log.write("frequencies\n")
-    log.write(str(freq))
+    for item in freq:
+        log.write(f"{item}\n")
 with open(log_file_energies, "w") as log:
     log.write("energies\n")
-    log.write(str(energies))
+    for item in energies:
+        log.write(f"{item}\n")
