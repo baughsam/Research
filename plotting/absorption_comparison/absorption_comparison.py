@@ -21,27 +21,26 @@ datasets = [
                   f"{src_dir}absorption_b3_eh_pent_prist.dat"]
     },
     {
-        "label": "T-Dep (Frozen Phonon)",
+        "label": "91cm-1 300K",
         "files": [f"{src_dir}absorption_b1_eh_100_tdep.dat",
                   f"{src_dir}absorption_b2_eh_100_tdep.dat",
                   f"{src_dir}absorption_b3_eh_100_tdep.dat"]
     },
 
-   # Example: You can easily add different data files to compare more than two systems
-   # {
-   #     "label": "Future Comparison (e.g. 300K)",
-   #     "files": ["absorption_b1_300k.dat",
-   #               "absorption_b2_300k.dat",
-   #               "absorption_b3_300k.dat"]
-   # },
+    {
+        "label": "63cm-1 300K",
+        "files": [f"{src_dir}absorption_b1_eh_63cm-1_300K.dat",
+                  f"{src_dir}absorption_b2_eh_63cm-1_300K.dat",
+                  f"{src_dir}absorption_b3_eh_63cm-1_300K.dat"]
+    },
 ]
 
 # Plotting Settings
 # The script will cycle through these colors in order. You can change them to what you want
 color_cycle = ['black', 'red', 'blue', 'green', 'orange', 'purple', 'cyan']
-xlim_range = (0, 4.0)  # eV range for x-axis
-ylim_range = (0, 3.5) #epsilon range for y-axis
-line_width = 1.5
+xlim_range = (1.5, 4.0)  # eV range for x-axis
+ylim_range = (0, 2) #epsilon range for y-axis
+line_width = 2.5
 
 
 # ==========================================
@@ -118,24 +117,32 @@ for panel_idx, ax in enumerate(axes):
 
         ax.plot(first_energy_grid, y_values, color=c, label=lbl, lw=line_width, linestyle=ls)
 
-    ax.set_title(title, fontsize=14, fontweight='bold')
-    ax.set_xlabel("Energy (eV)")
-    ax.set_ylabel(r"$\varepsilon_2(\omega)$")
+    # Apply font sizes and weights to titles and labels
+    ax.set_title(title, fontsize=40, fontweight='bold')
+    ax.set_xlabel("Energy (eV)", fontsize=40, fontweight='bold')
+    ax.set_ylabel(r"$\varepsilon_2(\omega)$", fontsize=40, fontweight='bold')
+
+    # Increase the font size of the tick mark numbers
+    ax.tick_params(axis='both', which='major', labelsize=15)
+
     ax.set_xlim(xlim_range)
     ax.set_ylim(ylim_range)
-    if panel_idx == 0:  # Only show legend on the first plot to avoid clutter? Or all?
-        ax.legend(fontsize=10)
+
+    if panel_idx == 0:
+        # Increase legend font size
+        ax.legend(fontsize=12)
+
     ax.grid(True, alpha=0.3)
 
 plt.tight_layout()
-plt.savefig("Comparison_Combined_Multi.png", dpi=300)
+plt.savefig("Comparison_Combined_Multi.png", dpi=600)
 print("Saved combined plot: Comparison_Combined_Multi.png")
 plt.show()
 
 # --- B. Individual Plots ---
 # We generate 4 separate image files (b1, b2, b3, avg)
 for panel_idx, title in zip(panel_indices, panel_titles):
-    plt.figure(figsize=(6, 5))
+    plt.figure(figsize=(10, 10))
 
     for ds_idx, ds in enumerate(datasets):
         y_values = processed_data[ds_idx][panel_idx]
@@ -145,17 +152,22 @@ for panel_idx, title in zip(panel_indices, panel_titles):
 
         plt.plot(first_energy_grid, y_values, color=c, label=lbl, lw=line_width, linestyle=ls)
 
-    plt.title(title, fontsize=14)
-    plt.xlabel("Energy (eV)")
-    plt.ylabel(r"$\varepsilon_2(\omega)$")
+    # Apply styling to individual plots
+    plt.title(title, fontsize=40, fontweight='normal')
+    plt.xlabel("Energy (eV)", fontsize=40, fontweight='normal')
+    plt.ylabel(r"$\varepsilon_2(\omega)$", fontsize=40, fontweight='normal')
+
+    # Increase tick mark labels
+    plt.tick_params(axis='both', which='major', labelsize=15)
+
     plt.xlim(xlim_range)
     plt.ylim(ylim_range)
-    plt.legend()
+    plt.legend(fontsize=30)
     plt.grid(True, alpha=0.3)
     plt.tight_layout()
 
-    safe_name = title.split()[0]  # b1, b2, b3, Average
+    safe_name = title.split()[0]
     filename = f"Comparison_{safe_name}.png"
-    plt.savefig(filename, dpi=300)
+    plt.savefig(filename, dpi=600)
     print(f"Saved individual plot: {filename}")
     plt.close()

@@ -19,110 +19,51 @@ colors = [
     '#FFFFBF', '#FEE08B', '#FDAE61', '#F46D43', '#9E0142'
 ]
 
-src_dir_data = "./data/91cm-1_300K_percentages/"
+src_dir_data = "./data/"
 
 conditions = [
 {
-        "label": "100% 300K",
-        "color": colors[0],
+        "label": "Pristine",
+        "color": "black",
         "linestyle": "-",
         "files": {
-            "a": f"{src_dir_data}plane_samp_dir+ex_100__300K_1D-a_density_bohr.dat",
-            "b": f"{src_dir_data}plane_samp_dir+ex_100__300K_1D-b_density_bohr.dat",
-            "c": f"{src_dir_data}plane_samp_dir+ex_100__300K_1D-c_density_bohr.dat"
+            "a": f"{src_dir_data}pristine/envelope_cx_pristine_1D-a.dat",
+            "b": f"{src_dir_data}pristine/envelope_cx_pristine_1D-b.dat",
+            "c": f"{src_dir_data}pristine/envelope_cx_pristine_1D-c.dat"
         }
     },
 {
-        "label": "90% 300K",
-        "color": colors[1],
+        "label": "91cm-1 300K S1",
+        "color": "blue",
         "linestyle": "-",
         "files": {
-            "a": f"{src_dir_data}plane_samp_dir+ex_90__300K_1D-a_density_bohr.dat",
-            "b": f"{src_dir_data}plane_samp_dir+ex_90__300K_1D-b_density_bohr.dat",
-            "c": f"{src_dir_data}plane_samp_dir+ex_90__300K_1D-c_density_bohr.dat"
+            "a": f"{src_dir_data}91cm-1_300K/envelope_91cm-1_300K_1D-a.dat",
+            "b": f"{src_dir_data}91cm-1_300K/envelope_91cm-1_300K_1D-b.dat",
+            "c": f"{src_dir_data}91cm-1_300K/envelope_91cm-1_300K_1D-c.dat"
         }
     },
 {
-        "label": "80% 300K",
-        "color": colors[2],
+        "label": "91cm-1 300K S2",
+        "color": "red",
         "linestyle": "-",
         "files": {
-            "a": f"{src_dir_data}plane_samp_dir+ex_80__300K_1D-a_density_bohr.dat",
-            "b": f"{src_dir_data}plane_samp_dir+ex_80__300K_1D-b_density_bohr.dat",
-            "c": f"{src_dir_data}plane_samp_dir+ex_80__300K_1D-c_density_bohr.dat"
+            "a": f"{src_dir_data}envelope_cx_100perc_S2_91cm-1_1D-a.dat",
+            "b": f"{src_dir_data}envelope_cx_100perc_S2_91cm-1_1D-b.dat",
+            "c": f"{src_dir_data}envelope_cx_100perc_S2_91cm-1_1D-c.dat"
         }
     },
+
 {
-        "label": "70% 300K",
-        "color": colors[3],
+        "label": "91cm-1 300K S3",
+        "color": "green",
         "linestyle": "-",
         "files": {
-            "a": f"{src_dir_data}plane_samp_dir+ex_70__300K_1D-a_density_bohr.dat",
-            "b": f"{src_dir_data}plane_samp_dir+ex_70__300K_1D-b_density_bohr.dat",
-            "c": f"{src_dir_data}plane_samp_dir+ex_70__300K_1D-c_density_bohr.dat"
+            "a": f"{src_dir_data}envelope_cx_100perc_S3_91cm-1_1D-a.dat",
+            "b": f"{src_dir_data}envelope_cx_100perc_S3_91cm-1_1D-b.dat",
+            "c": f"{src_dir_data}envelope_cx_100perc_S3_91cm-1_1D-c.dat"
         }
     },
-{
-        "label": "60% 300K",
-        "color": colors[4],
-        "linestyle": "-",
-        "files": {
-            "a": f"{src_dir_data}plane_samp_dir+ex_60__300K_1D-a_density_bohr.dat",
-            "b": f"{src_dir_data}plane_samp_dir+ex_60__300K_1D-b_density_bohr.dat",
-            "c": f"{src_dir_data}plane_samp_dir+ex_60__300K_1D-c_density_bohr.dat"
-        }
-    },
-{
-        "label": "50% 300K",
-        "color": colors[5],
-        "linestyle": "-",
-        "files": {
-            "a": f"{src_dir_data}plane_samp_dir+ex_50__300K_1D-a_density_bohr.dat",
-            "b": f"{src_dir_data}plane_samp_dir+ex_50__300K_1D-b_density_bohr.dat",
-            "c": f"{src_dir_data}plane_samp_dir+ex_50__300K_1D-c_density_bohr.dat"
-        }
-    },
-{
-        "label": "40% 300K",
-        "color": colors[6],
-        "linestyle": "-",
-        "files": {
-            "a": f"{src_dir_data}plane_samp_dir+ex_40__300K_1D-a_density_bohr.dat",
-            "b": f"{src_dir_data}plane_samp_dir+ex_40__300K_1D-b_density_bohr.dat",
-            "c": f"{src_dir_data}plane_samp_dir+ex_40__300K_1D-c_density_bohr.dat"
-        }
-    },
-{
-        "label": "30% 300K",
-        "color": colors[7],
-        "linestyle": "-",
-        "files": {
-            "a": f"{src_dir_data}plane_samp_dir+ex_30__300K_1D-a_density_bohr.dat",
-            "b": f"{src_dir_data}plane_samp_dir+ex_30__300K_1D-b_density_bohr.dat",
-            "c": f"{src_dir_data}plane_samp_dir+ex_30__300K_1D-c_density_bohr.dat"
-        }
-    },
-{
-        "label": "20% 300K",
-        "color": colors[8],
-        "linestyle": "-",
-        "files": {
-            "a": f"{src_dir_data}plane_samp_dir+ex_20__300K_1D-a_density_bohr.dat",
-            "b": f"{src_dir_data}plane_samp_dir+ex_20__300K_1D-b_density_bohr.dat",
-            "c": f"{src_dir_data}plane_samp_dir+ex_20__300K_1D-c_density_bohr.dat"
-        }
-    },
-{
-        "label": "10% 300K",
-        "color": colors[9],
-        "linestyle": "-",
-        "files": {
-            "a": f"{src_dir_data}plane_samp_dir+ex_10__300K_1D-a_density_bohr.dat",
-            "b": f"{src_dir_data}plane_samp_dir+ex_10__300K_1D-b_density_bohr.dat",
-            "c": f"{src_dir_data}plane_samp_dir+ex_10__300K_1D-c_density_bohr.dat"
-        }
-    },
-    # Add more conditions here if needed...
+
 ]
 
 # Directions to plot (Must match keys in the 'files' dictionary above)
@@ -132,7 +73,7 @@ directions_to_plot = ["a", "b", "c"]
 src_dir_plots = "./plots/"
 
 # Output Directory
-output_dir = f"{src_dir_plots}1d_exciton_analysis_91cm-1_300K_percentages"
+output_dir = f"./plots/1d_exciton_comparison_Pris_91cm-1-S1_91cm-1-S2"
 
 # Plot Styling
 figure_size = (8, 6)

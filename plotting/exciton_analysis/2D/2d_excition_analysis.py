@@ -75,7 +75,7 @@ def plot_scatter_heatmap(filename, save_plot=False, marker_size=10, x_label ="1"
 # --- How to use the function ---
 
 # 1. Set the name of your data file
-file_to_plot = "data/envelope_10__T-dep_2D-bc.gp"  # <-- Change this
+file_to_plot = "data/envelope_cx_100perc_S3_91cm-1_2D-bc.gp"  # <-- Change this
 
 # 2. Set whether to save the plot: True or False
 save_plot = True  # <-- Set this to True to save the file

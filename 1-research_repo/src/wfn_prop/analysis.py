@@ -107,6 +107,10 @@ def export_diffusion_gif_updated2(frames, dt, save_interval, length_x, length_y,
         # Update left panel
         total_density = np.sum(frames[frame_idx], axis=2)
         im1.set_data(total_density.T)
+
+        current_max = np.max(total_density)
+        im1.set_clim(vmin=0, vmax=current_max)
+
         ax1.set_title(f"Total Exciton Density | Time: {current_time_fs:.3f} fs")
 
         # Instantly update right panel using the pre-calculated history
