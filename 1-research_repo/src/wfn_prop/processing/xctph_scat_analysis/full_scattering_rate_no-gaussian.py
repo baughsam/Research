@@ -9,15 +9,15 @@ HBAR_EV_FS = (const.hbar / const.e) * 1e15
 GOLDEN_RULE_PREFACTOR = (2.0 * np.pi) / HBAR_EV_FS
 
 temp_K = 300
-sigma_eV = 0.2
+sigma_eV = 0.02
 bright_exciton_state = 0
 dark_exciton_state = 1
 
 S1 = f"S_{str(bright_exciton_state)}"
 S2 = f"S_{str(dark_exciton_state)}"
 
-xctph_h5 = "xctph_8x8x8.h5"
-log_file = "0.2-sigma_scattering_rate_8x8x8.log"
+xctph_h5 = "xctph_4x4x4.h5"
+log_file = "test1_scattering_rate_4x4x4_no-gaussian.log"
 
 
 # --- CORE PHYSICS FUNCTIONS ---
@@ -60,7 +60,7 @@ def energy_conservation_term(BED_2D: np.ndarray, rho_abs_3D: np.ndarray, rho_emi
     return absorption + emission
 
 
-def compute_scattering_rates(
+def compute_scattering_rates_no_gaussian(
         g_tensor_5D, energies, frequencies, Q_plus_q_map,
         S_initial, S_final, temp_K, sigma_eV, N_Q, N_q):
     """
@@ -76,7 +76,7 @@ def compute_scattering_rates(
     rho_abs = gaussian_weight(EG_2D, frequencies, sigma_eV, 'absorption')
     rho_emi = gaussian_weight(EG_2D, frequencies, sigma_eV, 'emission')
 
-    energy_cons_term = energy_conservation_term(BED_2D, rho_abs, rho_emi)
+    energy_cons_term = 1 #energy_conservation_term(BED_2D, rho_abs, rho_emi)
     weight_scat_rate_nu_Q_q = tensor_3D_squared * energy_cons_term
 
     # Integrate out all dimensions (Q, nu, q) for the total scalar rate
@@ -106,7 +106,7 @@ if __name__ == "__main__":
     gamma_idx = np.where((Qpts[:, 0] == 0) & (Qpts[:, 1] == 0) & (Qpts[:, 2] == 0))[0][0]
 
     print("Computing Intraband Rates (S_B -> S_B)...")
-    rate_total_BB, rate_Q_array_BB = compute_scattering_rates(
+    rate_total_BB, rate_Q_array_BB = compute_scattering_rates_no_gaussian(
         g_tensor, energies, frequencies, Q_plus_q_map,
         bright_exciton_state, bright_exciton_state, temp_K, sigma_eV, N_Q, N_q
     )
@@ -115,7 +115,7 @@ if __name__ == "__main__":
     time_gamma_BB = 1.0 / rate_gamma_BB if rate_gamma_BB > 1e-12 else np.nan
 
     print("Computing Interband Rates (S_B -> S_D)...")
-    rate_total_BD, rate_Q_array_BD = compute_scattering_rates(
+    rate_total_BD, rate_Q_array_BD = compute_scattering_rates_no_gaussian(
         g_tensor, energies, frequencies, Q_plus_q_map,
         bright_exciton_state, dark_exciton_state, temp_K, sigma_eV, N_Q, N_q
     )
@@ -127,14 +127,14 @@ if __name__ == "__main__":
     print(f"Writing results to {log_file}...")
     with open(log_file, "w") as log:
         log.write("=" * 50 + "\n")
-        log.write("EXCITON-PHONON SCATTERING RATE COMPUTATION LOG\n")
+        log.write("EXCITON-PHONON SCATTERING RATE COMPUTATION LOG (NO GAUSSIAN)\n")
         log.write("=" * 50 + "\n")
         log.write(f"Run Date/Time     : {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
         log.write(f"Input Data File   : {xctph_h5}\n\n")
 
         log.write("--- PARAMETERS ---\n")
         log.write(f"Temperature       : {temp_K} K\n")
-        log.write(f"Broadening (sigma): {sigma_eV} eV\n")
+        #log.write(f"Broadening (sigma): {sigma_eV} eV\n")
         log.write(f"Bright State (SB) : Index {bright_exciton_state}\n")
         log.write(f"Dark State (SD)   : Index {dark_exciton_state}\n")
         log.write(f"Q-Grid Size (N_Q) : {N_Q}\n")
