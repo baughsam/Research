@@ -47,6 +47,9 @@ with open(output_filename, 'w') as f_out:
             truncated_norm = np.sum(np.abs(truncated_wavepacket) ** 2)
             retained_percentage = (truncated_norm / total_norm) * 100
 
+            # RyteV energy conversion
+            energy_ev = energies[iS, iQ] * 13.605698066
+
             f_out.write(
                 f"{iS:>10d} {iQ:>8d} {energies[iS, iQ]:>14.4f} "
                 f"{total_norm:>12.4f} {truncated_norm:>12.4f} "
