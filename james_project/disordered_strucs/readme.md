@@ -13,5 +13,37 @@ This script automates the generation of a structural dataset featuring varying l
 
 This script relies on the Atomic Simulation Environment (ASE) and NumPy.
 
-```bash
 pip install ase numpy
+
+## Configuration
+
+Open the script to adjust the core variables under the Input header:
+
+* `input_file`: Path to the perfectly relaxed base cell.
+* `total_structures`: The exact number of structures to generate.
+* `perc_min` / `perc_max`: The lower and upper bounds for structural perturbation. 
+  * *Note: A maximum around `8.0` is generally sufficient to cross the crystalline-to-amorphous threshold for materials like diamond-cubic silicon.*
+* `output_dir`: The directory where the dataset will be saved.
+* `base_atom_format`: a flag for ase in case we aren't using lammps
+
+## Usage
+
+Execute the script via Python:
+
+python generate_training_set.py
+
+## Output
+
+The script generates a directory (default: `training_set/`) populated with LAMMPS data files. Each file is sequentially numbered and stamped with its exact perturbation percentage for easy parsing by downstream featurization scripts:
+
+training_set/
+
+├── struct_001_0.14pct.data
+
+├── struct_002_0.31pct.data
+
+├── struct_003_0.45pct.data
+
+...
+
+└── struct_050_7.92pct.data
