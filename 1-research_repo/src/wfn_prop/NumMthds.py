@@ -211,7 +211,7 @@ class RungeKutta4:
                 max_scat_rate = 1/ self.scattering_solver.scat_time
 
         # Calculates max safe time step using CFL Condition
-        self.dt = self.courant_number / ((vx_max/dx) + (vy_max/dy) + 1e-15)
+        self.dt = self.courant_number / ((vx_max/dx) + (vy_max/dy) + max_scat_rate + 1e-15)
         # Calculate how many total loop iterations are needed for the simulation
         self.num_steps = int(self.total_sim_time / self.dt)
         print(f"Calculated dt: {self.dt:.4f} fs | Total Steps: {self.num_steps}")
