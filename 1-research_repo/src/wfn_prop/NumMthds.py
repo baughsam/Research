@@ -201,12 +201,23 @@ class RungeKutta4:
             vx_max = abs(self.spatial_solver.velocity_x)
             vy_max = abs(self.spatial_solver.velocity_y)
 
+        # Extract maximum scattering rate (inverse lifetime) to take into account scattering rate
+        max_scat_rate = 0.0
+        if self.scattering_solver:
+            if hasattr(self.scattering_solver, 'transition_matrix'):
+                # The diagonal has the total loss rate out of each Q-state
+                max_scat_rate = np.max(np.abs(np.diag(self.scattering_solver.transition_matrix)))
+            elif hasattr(self.scattering_solver, 'scat_time'):
+                max_scat_rate = 1/ self.scattering_solver.scat_time
 
         # Calculates max safe time step using CFL Condition
         self.dt = self.courant_number / ((vx_max/dx) + (vy_max/dy) + 1e-15)
         # Calculate how many total loop iterations are needed for the simulation
         self.num_steps = int(self.total_sim_time / self.dt)
         print(f"Calculated dt: {self.dt:.4f} fs | Total Steps: {self.num_steps}")
+
+        if max_scat_rate > 0:
+            print(f"Max scattering rate detected: {max_scat_rate:.4e} fs^-1 (Min lifetime: {1/max_scat_rate:.2f} fs")
 
     def solve(self, n_initial: np.ndarray, save_interval: int = 10) -> np.ndarray:
         """
