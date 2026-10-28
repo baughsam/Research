@@ -176,20 +176,36 @@ def main():
     # Initialize Solvers
     print("Initializing solvers...")
     advection_solver = CentralDifference3d(dx=delta_x, dy=delta_y, vel_x=v_x_array, vel_y=v_y_array)
+    #advection_solver = UpwindDifference3d(dx=delta_x, dy=delta_y, vel_x=v_x_array, vel_y=v_y_array)
 
-    """scattering_obj = two_state_transition_matrix(
+    """# Initialize Solvers
+    print("Initializing solvers...")
+    advection_solver = CentralDifference3d(dx=delta_x, dy=delta_y, vel_x=v_x_array, vel_y=v_y_array)
+
+    # --- COHERENT RUN: COMMENT OUT SCATTERING INITIALIZATION ---
+    # scattering_obj = intraband_transition_matrix(k_BB=physics_payload['Rate_BB'],
+    #                                              map_Q_to_q= physics_payload['Q_plus_q_map'],
+    #                                              )
+
+    # Time Integration (Pass scattering_solver=None)
+    time_integrator = RungeKutta4(spatial_solver=advection_solver,
+                                  total_sim_time=cfg['sim_time'],
+                                  scattering_solver=None)"""
+
+
+    scattering_obj = two_state_transition_matrix(
         k_BB=physics_payload['Rate_BB'],
         k_BD=physics_payload['Rate_BD'],
         gamma_decay_constant=physics_payload['radiative_rate'],
         map_Q_to_q=physics_payload['Q_plus_q_map'],
         gamma_index=physics_payload['gamma_index']
-    )"""
+    )
 
-    scattering_obj = intraband_transition_matrix(k_BB=physics_payload['Rate_BB'],
+    """scattering_obj = intraband_transition_matrix(k_BB=physics_payload['Rate_BB'],
                                                  map_Q_to_q= physics_payload['Q_plus_q_map'],
-                                                 )
+                                                 )"""
 
-    """# Time Integration
+    # Time Integration
     time_integrator = RungeKutta4(spatial_solver=advection_solver, total_sim_time=cfg['sim_time'],
                                   scattering_solver=scattering_obj)
     frames = time_integrator.solve(occupation_matrix_3d, save_interval=2)
@@ -204,11 +220,8 @@ def main():
 
     # Close file streams cleanly
     sys.stdout = logger.terminal
-    logger.close()"""
+    logger.close()
 
-    # Time Integration
-    time_integrator = RungeKutta4(spatial_solver=advection_solver, total_sim_time=cfg['sim_time'],
-                                  scattering_solver=scattering_obj)
 
     # This now returns the path to your .h5 file
     output_data_path = time_integrator.solve_hdf5_compressed(
