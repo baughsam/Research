@@ -2,9 +2,9 @@ import h5py
 import scipy.constants as const
 import numpy as np
 
-xctph_h5 = "xctph_8x8x8.h5"
+xctph_h5 = '../xctph_8x8x4-naph.h5'
 bright_exciton_state = 0
-dark_exciton_state = 2
+dark_exciton_state = 1
 temp_K = 300
 sigma_eV = 0.02
 
@@ -13,9 +13,9 @@ HBAR_EV_FS = (const.hbar / const.e) * 1e15
 GOLDEN_RULE_PREFACTOR = (2.0 * np.pi) / HBAR_EV_FS
 
 # TODO: Extract these three exact values from your h5 / QE out files
-gamma_energy_eV = 12.68
-dipole_strength_bohr_sq = 9.1
-unit_cell_area_angstroms = 7.134
+gamma_energy_eV = 4.077
+dipole_strength_bohr_sq = 0.12646154
+unit_cell_area_angstroms = 47.94
 
 
 # Open HDF5 file in read-only mode
@@ -23,7 +23,7 @@ with h5py.File(xctph_h5, mode = 'r') as f:
 
     # Load datasets into NumPy arrays in memory
     # (Might be an issue later when our 5D g_tensor is huge)
-    g_tensor = f['xctph'][:]                       # Shape: (S, S', Q, nu, q)
+    g_tensor = f['xctph'][:] * RY_TO_EV            # Shape: (S, S', Q, nu, q)
     energies = f['energies'][:] * RY_TO_EV         # Shape: (S, Q)
     frequencies = f['frequencies'][:] * RY_TO_EV   # Shape: (nu, q)
     Q_plus_q_map = f['Q_plus_q_map'][:]            # Shape: (Q, q)
@@ -192,8 +192,11 @@ def compute_transition_rates(
     weight_scat_rate_nu_Q_q = tensor_3D_squared * energy_cons_term
     weight_scat_rate_Q_q = np.sum(weight_scat_rate_nu_Q_q, axis=1) # Units: eV
 
+    #Nq weighting
+    N_q = Q_plus_q_map.shape[1]
+
     # Convert energy linewidth to scattering rates (Units: 1/fs)
-    weight_scat_rate_Q_q_fs = weight_scat_rate_Q_q * GOLDEN_RULE_PREFACTOR
+    weight_scat_rate_Q_q_fs = ( weight_scat_rate_Q_q / N_q ) * GOLDEN_RULE_PREFACTOR
 
     return weight_scat_rate_Q_q_fs
 
@@ -280,7 +283,7 @@ print(f"Corresponding Lifetime:    {1/radiative_rate_fs:.2f} fs")
 
 # Export the physics payload
 print("Exporting .npz (physics payload)...")
-output_filename = 'compiled_scat_rates_data_S0_S2_8x8x8.npz'
+output_filename = '../compiled_scat_rates_data_S1_S2_8x8x4-naph.npz'
 np.savez(
     output_filename,
     Rate_BB=Rate_BB,
