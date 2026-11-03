@@ -181,3 +181,47 @@ class intraband_transition_matrix(Kscat):
 
         scattered_array = np.einsum('ij, xyi -> xyj', self.transition_matrix, array_3d)
         return scattered_array
+
+
+@dataclass
+class MultiBandTransitionMatrix(Kscat):
+    n_bands: int
+    rates_dict: dict  # Maps (band_out_idx, band_in_idx) -> np.ndarray
+    gamma_decay_rates: tuple  # Decay rates for each band
+    map_Q_to_q: np.ndarray
+    gamma_index: int
+
+    K_tensor: np.ndarray = field(init=False)
+
+    def __post_init__(self):
+        N_Q, N_q = self.map_Q_to_q.shape
+        self.K_tensor = np.zeros((self.n_bands, self.n_bands, N_Q, N_Q))
+
+        print(f"Constructing ({self.n_bands}x{self.n_bands}) 4D Scattering Tensor...")
+
+        # 1. Build Off-Diagonals (Gains)
+        for out_idx in range(self.n_bands):
+            for in_idx in range(self.n_bands):
+                rate_matrix = self.rates_dict.get((out_idx, in_idx))
+                if rate_matrix is not None:
+                    for i in range(N_Q):
+                        for j in range(N_q):
+                            Q_final = self.map_Q_to_q[i, j]
+                            self.K_tensor[out_idx, in_idx, Q_final, i] += rate_matrix[i, j]
+
+        # 2. Build Diagonals (Losses)
+        for in_idx in range(self.n_bands):
+            for out_idx in range(self.n_bands):
+                rate_matrix = self.rates_dict.get((out_idx, in_idx))
+                if rate_matrix is not None:
+                    loss_sum = np.sum(rate_matrix, axis=1)  # Shape: (N_Q,)
+                    for i in range(N_Q):
+                        self.K_tensor[in_idx, in_idx, i, i] -= loss_sum[i]
+
+            # Insert Radiative Decay for this specific band
+            if self.gamma_decay_rates[in_idx] > 0:
+                self.K_tensor[in_idx, in_idx, self.gamma_index, self.gamma_index] -= self.gamma_decay_rates[in_idx]
+
+    def calc_scattering(self, array_4d: np.ndarray) -> np.ndarray:
+        # a = band_out, b = band_in, x/y = space, i = q_out, j = q_in
+        return np.einsum('abij, bxyj -> axyi', self.K_tensor, array_4d)
