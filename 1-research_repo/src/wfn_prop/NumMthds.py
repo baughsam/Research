@@ -307,3 +307,155 @@ class RungeKutta4:
 
         print("Integration complete. Full phase-space history safely secured on disk.")
         return output_file  # Return the file path instead of the array list
+
+@dataclass
+class MultiBandRungeKutta4:
+    # User Inputs
+    spatial_solvers: list             # List of Upwind/Central solver instances
+    total_sim_time: float
+    courant_number: float = 0.5       # Default Safety factor for stability
+    scattering_solver: object = None  # MultiBandTransitionMatrix
+
+    # Calculated Attributes
+    dt: float = field(init=False)
+    num_steps: int = field(init=False)
+    n_bands: int = field(init=False)
+
+    def __post_init__(self):
+        """
+        Auto-calculates safe time step across all initialized bands
+        """
+        self.n_bands = len(self.spatial_solvers)
+
+        # Extract grid parameters from the first solver
+        dx = self.spatial_solvers[0].dx
+        dy = self.spatial_solvers[0].dy
+
+        # Find global max velocities across all bands for CFL condition
+        vx_max = 0.0
+        vy_max = 0.0
+        for solver in self.spatial_solvers:
+            if hasattr(solver, 'vel_x'):
+                vx_max = max(vx_max, np.max(np.abs(solver.vel_x)))
+                vy_max = max(vy_max, np.max(np.abs(solver.vel_y)))
+            else:
+                vx_max = max(vx_max, abs(solver.velocity_x))
+                vy_max = max(vy_max, abs(solver.velocity_y))
+
+        # Extract max scattering rate (inverse lifetime) across all bands
+        max_scat_rate = 0.0
+        if self.scattering_solver and hasattr(self.scattering_solver, 'K_tensor'):
+            # Extract diagonals: out_band == in_band, q_out == q_in
+            diags = np.einsum('aaii->ai', self.scattering_solver.K_tensor)
+            max_scat_rate = np.max(np.abs(diags))
+
+        # Calculates max safe time step using CFL Condition
+        self.dt = self.courant_number / ((vx_max/dx) + (vy_max/dy) + max_scat_rate + 1e-15)
+        self.num_steps = int(self.total_sim_time / self.dt)
+        print(f"Calculated dt: {self.dt:.4f} fs | Total Steps: {self.num_steps}")
+
+        if max_scat_rate > 0:
+            print(f"Max scattering rate detected: {max_scat_rate:.4e} fs^-1 (Min lifetime: {1/max_scat_rate:.2f} fs)")
+
+    def _calc_advection_4d(self, n_4d: np.ndarray) -> np.ndarray:
+        """Applies each band's specific spatial solver to its respective 3D slice."""
+        adv_4d = np.zeros_like(n_4d)
+        for b in range(self.n_bands):
+            adv_4d[b] = self.spatial_solvers[b].upwindDifference(n_4d[b])
+        return adv_4d
+
+    def solve(self, n_initial_4d: np.ndarray, save_interval: int = 10) -> list:
+        """
+        Executes the explicit RK4 time integration.
+        """
+        n_current = np.copy(n_initial_4d)
+        history = [np.copy(n_current)]
+
+        for step in range(self.num_steps):
+
+            k1_scat = self.scattering_solver.calc_scattering(n_current) if self.scattering_solver else 0.0
+            k1_adv = self._calc_advection_4d(n_current)
+            k1 = k1_adv + k1_scat
+
+            n_temp1 = n_current + k1 * (self.dt / 2.0)
+            k2_scat = self.scattering_solver.calc_scattering(n_temp1) if self.scattering_solver else 0.0
+            k2_adv = self._calc_advection_4d(n_temp1)
+            k2 = k2_adv + k2_scat
+
+            n_temp2 = n_current + k2 * (self.dt / 2.0)
+            k3_scat = self.scattering_solver.calc_scattering(n_temp2) if self.scattering_solver else 0.0
+            k3_adv = self._calc_advection_4d(n_temp2)
+            k3 = k3_adv + k3_scat
+
+            n_temp3 = n_current + k3 * self.dt
+            k4_scat = self.scattering_solver.calc_scattering(n_temp3) if self.scattering_solver else 0.0
+            k4_adv = self._calc_advection_4d(n_temp3)
+            k4 = k4_adv + k4_scat
+
+            n_current = n_current + (self.dt / 6.0) * (k1 + 2 * k2 + 2 * k3 + k4)
+
+            # Save frames for the animation
+            if (step + 1) % save_interval == 0:
+                history.append(np.copy(n_current))
+
+        return history
+
+    def solve_hdf5_compressed(self, n_initial_4d: np.ndarray, save_interval: int = 10, output_file: str = "full_history.h5") -> str:
+        """
+        Executes the explicit RK4 time integration for N-Bands.
+        Streams the full 4D tensor directly to an HDF5 file on disk to prevent RAM overflow.
+        """
+        import h5py
+
+        n_current = np.copy(n_initial_4d)
+        N_bands, Nx, Ny, Nq = n_current.shape
+
+        print(f"Streaming full 4D tensor history to {output_file} to preserve RAM...")
+
+        with h5py.File(output_file, 'w') as f:
+            # Create a dynamically resizable dataset chunked for performance
+            dset = f.create_dataset(
+                "frames",
+                shape=(1, N_bands, Nx, Ny, Nq),
+                maxshape=(None, N_bands, Nx, Ny, Nq),
+                dtype=np.float32,
+                compression="gzip",
+                compression_opts=4
+            )
+            f.attrs['dt'] = self.dt
+
+            # Save the initial conditions
+            dset[0] = n_current.astype(np.float32)
+            frame_count = 1
+
+            for step in range(self.num_steps):
+
+                k1_scat = self.scattering_solver.calc_scattering(n_current) if self.scattering_solver else 0.0
+                k1_adv = self._calc_advection_4d(n_current)
+                k1 = k1_adv + k1_scat
+
+                n_temp1 = n_current + k1 * (self.dt / 2.0)
+                k2_scat = self.scattering_solver.calc_scattering(n_temp1) if self.scattering_solver else 0.0
+                k2_adv = self._calc_advection_4d(n_temp1)
+                k2 = k2_adv + k2_scat
+
+                n_temp2 = n_current + k2 * (self.dt / 2.0)
+                k3_scat = self.scattering_solver.calc_scattering(n_temp2) if self.scattering_solver else 0.0
+                k3_adv = self._calc_advection_4d(n_temp2)
+                k3 = k3_adv + k3_scat
+
+                n_temp3 = n_current + k3 * self.dt
+                k4_scat = self.scattering_solver.calc_scattering(n_temp3) if self.scattering_solver else 0.0
+                k4_adv = self._calc_advection_4d(n_temp3)
+                k4 = k4_adv + k4_scat
+
+                n_current = n_current + (self.dt / 6.0) * (k1 + 2 * k2 + 2 * k3 + k4)
+
+                # Stream to disk and discard from RAM
+                if (step + 1) % save_interval == 0:
+                    dset.resize(frame_count + 1, axis=0)  # Expand the file by 1 frame
+                    dset[frame_count] = n_current.astype(np.float32)  # Write directly to disk
+                    frame_count += 1
+
+        print("Integration complete. Full phase-space history safely secured on disk.")
+        return output_file
