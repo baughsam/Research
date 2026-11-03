@@ -1,7 +1,7 @@
 import numpy as np
 import argparse
-from wfn_prop.NumMthds import RungeKutta4, UpwindDifference2d, UpwindDifference3d, CentralDifference3d
-from wfn_prop.k_scat import Decay, FickDiff, PhononScat, two_state_transition_matrix, intraband_transition_matrix
+from wfn_prop.NumMthds import MultiBandRungeKutta4, CentralDifference3d
+from wfn_prop.k_scat import MultiBandTransitionMatrix
 import sys
 import os
 from wfn_prop.io import parse_input_file
@@ -43,7 +43,7 @@ def print_banner():
     print(ascii_art)
     print("*" * w)
     print("*" + "Boltzmann Transport + K_Scattering".center(w - 2) + "*")
-    print("*" + "v1.0".center(w - 2) + "*")
+    print("*" + "v2.0 - N-Band Modular Architecture".center(w - 2) + "*")
     print("*" * w)
     print("*" + "".center(w - 2) + "*")
     print("*" + " Exciton-Phonon Dynamics Framework Derived From:".ljust(w - 2) + "*")
@@ -84,12 +84,11 @@ def init_gaussian_spread_2D(X_grid, Y_grid, Q_vectors, grid_x, grid_y, x_0, y_0,
     return occupation_matrix_3d
 
 
-def init_single_q_2D(X_grid, Y_grid, N_Q, grid_x, grid_y, x_0, y_0, sigma_R, target_q_index, amplitude = 1.0):
+def init_single_q_2D(X_grid, Y_grid, N_Q, grid_x, grid_y, x_0, y_0, sigma_R, target_q_index, amplitude=1.0):
     """Initializes 100% of the wavepacket mass in a single chosen Q-index."""
     # STRICT BOUNDS CHECKING
     if target_q_index < 0 or target_q_index >= N_Q:
         print(f"\nFATAL ERROR: Target Q-index {target_q_index} is out of bounds!")
-        print(f"Your loaded momentum grid only contains states indexed from 0 to {N_Q - 1}.")
         sys.exit(1)
 
     print(f"Initializing wavepacket strictly at single Q-index {target_q_index}...")
@@ -104,7 +103,6 @@ def init_single_q_2D(X_grid, Y_grid, N_Q, grid_x, grid_y, x_0, y_0, sigma_R, tar
 
 # --- Main Function ---
 def main():
-    # CLI clean up: Argparse only looks for the config file path now
     parser = argparse.ArgumentParser(description="Run Exciton Transport via Input File")
     parser.add_argument("config_file", type=str, help="Path to the simulation config.txt")
     args = parser.parse_args()
@@ -113,7 +111,7 @@ def main():
     logger = DualStream("output.log")
     sys.stdout = logger
 
-    # Print the updated Wfn Prop header banner
+    # Print the Wfn Prop header banner
     print_banner()
 
     # Parse parameters dynamically from text file
@@ -142,7 +140,7 @@ def main():
             X_grid[i, j] = i * delta_x
             Y_grid[i, j] = j * delta_y
 
-    # --- Load pre-compiled physics files straight from the config dictionary ---
+    # Load pre-compiled physics files straight from the config dictionary
     print(f"Loading physics payload: {cfg['physics_file']}")
     physics_payload = np.load(cfg['physics_file'])
 
@@ -152,15 +150,11 @@ def main():
     Q_vectors = physics_payload['Qpts']
     N_Q = len(Q_vectors)
 
-    # Failsafe check mapping
+    # Failsafe: check mapping
     if not np.allclose(Q_vectors, velocity_payload['Qpts']):
         raise ValueError("FATAL: Momentum ordering mismatch between your configuration's input payloads!")
 
-    # Extract velocity components
-    v_x_array = velocity_payload['vel_x'].astype(np.float32)
-    v_y_array = velocity_payload['vel_y'].astype(np.float32)
-
-    # Wavepacket Initialization Mode Selection
+    # Wavepacket Initialization (Base 3D Slice)
     init_mode = cfg.get('init_mode', 'gauss')
     if init_mode == 'gauss':
         occupation_matrix_3d = init_gaussian_spread_2D(
@@ -173,47 +167,78 @@ def main():
             x_0, y_0, cfg['sigma_R'], cfg.get('target_q_index', 0), cfg['amplitude']
         )
 
-    # Initialize Solvers
-    print("Initializing solvers...")
-    advection_solver = CentralDifference3d(dx=delta_x, dy=delta_y, vel_x=v_x_array, vel_y=v_y_array)
-    #advection_solver = UpwindDifference3d(dx=delta_x, dy=delta_y, vel_x=v_x_array, vel_y=v_y_array)
+    # --- 1. PARSE N-BAND CONFIGURATION ---
+    state_names = cfg['state_names']
+    advection_flags = cfg['state_advection']
+    gamma_decays = cfg['state_gamma_decay']
 
-    """# Initialize Solvers
-    print("Initializing solvers...")
-    advection_solver = CentralDifference3d(dx=delta_x, dy=delta_y, vel_x=v_x_array, vel_y=v_y_array)
+    if isinstance(state_names, str): state_names = (state_names,)
+    if isinstance(advection_flags, (bool, str)): advection_flags = (advection_flags,)
+    if isinstance(gamma_decays, (float, int)): gamma_decays = (gamma_decays,)
 
-    # --- COHERENT RUN: COMMENT OUT SCATTERING INITIALIZATION ---
-    # scattering_obj = intraband_transition_matrix(k_BB=physics_payload['Rate_BB'],
-    #                                              map_Q_to_q= physics_payload['Q_plus_q_map'],
-    #                                              )
+    n_bands = len(state_names)
+    print(f"\nAssembling {n_bands}-Band Phase Space Tensor for states: {state_names}")
 
-    # Time Integration (Pass scattering_solver=None)
-    time_integrator = RungeKutta4(spatial_solver=advection_solver,
-                                  total_sim_time=cfg['sim_time'],
-                                  scattering_solver=None)"""
+    # --- 2. BUILD 4D TENSOR ---
+    n_initial_4d = np.zeros((n_bands, cfg['grid_x'], cfg['grid_y'], N_Q), dtype=np.float32)
+    n_initial_4d[0] = occupation_matrix_3d
 
+    # --- 3. DYNAMICALLY ASSEMBLE SPATIAL SOLVERS ---
+    spatial_solvers = []
+    for i, state in enumerate(state_names):
+        flag = str(advection_flags[i]).strip().lower() == 'true'
+        if flag:
+            print(f"  [{state}] Advection ENABLED. Loading velocities.")
+            vx = velocity_payload[f'vel_x_{state}'].astype(np.float32)
+            vy = velocity_payload[f'vel_y_{state}'].astype(np.float32)
+        else:
+            print(f"  [{state}] Advection DISABLED. Pinning spatial grid.")
+            vx = np.zeros(N_Q, dtype=np.float32)
+            vy = np.zeros(N_Q, dtype=np.float32)
 
-    scattering_obj = two_state_transition_matrix(
-        k_BB=physics_payload['Rate_BB'],
-        k_BD=physics_payload['Rate_BD'],
-        gamma_decay_constant=physics_payload['radiative_rate'],
+        spatial_solvers.append(CentralDifference3d(dx=delta_x, dy=delta_y, vel_x=vx, vel_y=vy))
+
+    # --- 4. DYNAMICALLY COLLECT SCATTERING RATES ---
+    rates_dict = {}
+    for out_idx, out_state in enumerate(state_names):
+        for in_idx, in_state in enumerate(state_names):
+            key = f'Rate_{out_state}_{in_state}'
+            if key in physics_payload:
+                rates_dict[(out_idx, in_idx)] = physics_payload[key]
+            elif out_idx != in_idx:
+                print(f"  Warning: No interband scattering matrix found for {key}. Assuming 0.0.")
+
+    print("\nInitializing Multi-Band Scattering Operator...")
+    scattering_obj = MultiBandTransitionMatrix(
+        n_bands=n_bands,
+        rates_dict=rates_dict,
+        gamma_decay_rates=gamma_decays,
         map_Q_to_q=physics_payload['Q_plus_q_map'],
         gamma_index=physics_payload['gamma_index']
     )
 
-    """scattering_obj = intraband_transition_matrix(k_BB=physics_payload['Rate_BB'],
-                                                 map_Q_to_q= physics_payload['Q_plus_q_map'],
-                                                 )"""
+    # --- 5. TIME INTEGRATION ---
+    print("\nInitializing Runge-Kutta 4 Integrator...")
+    time_integrator = MultiBandRungeKutta4(
+        spatial_solvers=spatial_solvers,
+        total_sim_time=cfg['sim_time'],
+        scattering_solver=scattering_obj
+    )
 
-    # Time Integration
-    time_integrator = RungeKutta4(spatial_solver=advection_solver, total_sim_time=cfg['sim_time'],
-                                  scattering_solver=scattering_obj)
-    frames = time_integrator.solve(occupation_matrix_3d, save_interval=2)
-
-    # Compress and dump frames to disk (for visualization)
+    # Save standard frames array
+    frames = time_integrator.solve(n_initial_4d, save_interval=2)
     output_data_path = f"./{cfg['gif_filename']}_frames.npz"
     np.savez_compressed(output_data_path, frames=np.array(frames), dt=time_integrator.dt)
     print(f"SUCCESS: Raw frames exported to {output_data_path}.")
+
+    # Stream to HDF5
+    hdf5_data_path = time_integrator.solve_hdf5_compressed(
+        n_initial_4d,
+        save_interval=2,
+        output_file=f"./{cfg['gif_filename']}_frames.h5"
+    )
+    print(f"SUCCESS: HDF5 stream exported to {hdf5_data_path}.")
+
     print("\n" + "=" * w)
     print("Job Complete".center(w))
     print("=" * w)
@@ -221,16 +246,6 @@ def main():
     # Close file streams cleanly
     sys.stdout = logger.terminal
     logger.close()
-
-
-    # This now returns the path to your .h5 file
-    output_data_path = time_integrator.solve_hdf5_compressed(
-        occupation_matrix_3d,
-        save_interval=2,
-        output_file=f"./{cfg['gif_filename']}_frames.h5"
-    )
-
-    print(f"SUCCESS: Raw frames exported to {output_data_path}.")
 
 
 if __name__ == "__main__":
