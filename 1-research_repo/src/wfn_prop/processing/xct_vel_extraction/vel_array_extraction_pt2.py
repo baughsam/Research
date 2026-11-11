@@ -1,8 +1,8 @@
 import numpy as np
 import scipy.constants as const
 
-input_file = "ordered_raw_energies_state_1_8x8x8.npz"
-output_file = "final_velocity_payload_8x8x8.npz"
+input_file = 'data/ordered_raw_energies_state_2_8x8x4-naph.npz'#'./square_cos_test/toy_raw_energies_32x32x32.npz' #'data/ordered_raw_energies_state_1_8x8x8.npz'
+output_file = 'data/final_velocity_payload_8x8x4-naph_S2.npz'#'./square_cos_test/toy_velocity_payload_32x32x32.npz'#'data/final_velocity_payload_8x8x8.npz'
 
 HBAR_EV_FS = (const.hbar / const.e) * 1e15  # eV*fs
 BOHR_TO_NM = const.physical_constants['Bohr radius'][0] * 1e9

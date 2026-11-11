@@ -12,16 +12,16 @@ GOLDEN_RULE_PREFACTOR = (2.0 * np.pi) / HBAR_EV_FS
 temp_K = 300
 sigma_eV = 0.02
 bright_exciton_state = 0
-dark_exciton_state = 1
+dark_exciton_state = 3
 
 S1 = f"S_{str(bright_exciton_state)}"
 S2 = f"S_{str(dark_exciton_state)}"
 
 # Target your local xctph file
 # (Matches the 4x4x4 grid from your corrections)
-xctph_h5 = "xctph_8x8x8.h5"
+xctph_h5 = "../xctph-matrix-elements-analysis/naphthalene/xctph-naph-full.h5"
 #xctph_h5 = 'xctph_8x8x8.h5'
-suffix='_8x8x8_no-gaussian'
+suffix='_naph-full-no-gaussian'
 
 
 # --- CORE PHYSICS FUNCTIONS ---

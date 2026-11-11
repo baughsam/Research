@@ -19,6 +19,8 @@ class DualStream:
     def write(self, message):
         self.terminal.write(message)
         self.log.write(message)
+        self.terminal.flush()
+        self.log.flush()
 
     def flush(self):
         self.terminal.flush()
@@ -101,10 +103,75 @@ def init_single_q_2D(X_grid, Y_grid, N_Q, grid_x, grid_y, x_0, y_0, sigma_R, tar
     occupation_matrix_3d[:, :, target_q_index] = spatial_dist * 1.0
     return occupation_matrix_3d
 
+def load_velocity_for_state(vel_file_setting: str, state: str, Q_vectors: np.ndarray, advected_count: int = 1):
+    """
+    Autodetects and loads velocities for a specific state.
+    Resolution priority:
+      1. Per-state files: {stem}_{state}.npz alongside vel_file, in current dir,
+         or in processing/xct_vel_extraction/data/
+      2. Tagged arrays inside vel_file: 'vel_x_{state}', 'vel_y_{state}'
+      3. Untagged arrays inside vel_file: 'vel_x', 'vel_y' (only if single state advected)
+    """
+    stem = vel_file_setting[:-4] if vel_file_setting.endswith('.npz') else vel_file_setting
+    base_name = os.path.basename(stem)
+    dir_name = os.path.dirname(stem) or '.'
+
+    candidates = [
+        f"{stem}_{state}.npz",
+        os.path.join(dir_name, f"{base_name}_{state}.npz"),
+        os.path.join('.', f"{base_name}_{state}.npz"),
+        os.path.join('processing/xct_vel_extraction/data', f"{base_name}_{state}.npz"),
+    ]
+
+    for cand in candidates:
+        if os.path.exists(cand):
+            resolved_path = os.path.normpath(cand)
+            payload = np.load(resolved_path)
+            print(f"  [{state}] Advection ENABLED. Autodetected '{resolved_path}'.")
+            if not np.allclose(Q_vectors, payload['Qpts']):
+                raise ValueError(f"FATAL: Momentum ordering mismatch between Qpts in physics file and {resolved_path}!")
+            if f'vel_x_{state}' in payload and f'vel_y_{state}' in payload:
+                vx = payload[f'vel_x_{state}'].astype(np.float32)
+                vy = payload[f'vel_y_{state}'].astype(np.float32)
+            elif 'vel_x' in payload and 'vel_y' in payload:
+                vx = payload['vel_x'].astype(np.float32)
+                vy = payload['vel_y'].astype(np.float32)
+            else:
+                raise KeyError(f"Neither 'vel_x_{state}' nor 'vel_x' found in {resolved_path}. Found: {payload.files}")
+            return vx, vy
+
+    # Fall back to single-file payload
+    if os.path.exists(vel_file_setting):
+        payload = np.load(vel_file_setting)
+        if not np.allclose(Q_vectors, payload['Qpts']):
+            raise ValueError(f"FATAL: Momentum ordering mismatch between Qpts in physics file and {vel_file_setting}!")
+        key_x, key_y = f'vel_x_{state}', f'vel_y_{state}'
+        if key_x in payload and key_y in payload:
+            print(f"  [{state}] Advection ENABLED. Loaded '{key_x}', '{key_y}' from {vel_file_setting}.")
+            return payload[key_x].astype(np.float32), payload[key_y].astype(np.float32)
+        elif 'vel_x' in payload and 'vel_y' in payload:
+            if advected_count != 1:
+                raise KeyError(
+                    f"FATAL: '{key_x}' not in {vel_file_setting} and untagged 'vel_x' cannot be "
+                    f"assigned unambiguously with {advected_count} advected states."
+                )
+            print(f"  [{state}] Advection ENABLED. WARNING: using UNTAGGED 'vel_x'/'vel_y' from "
+                  f"{vel_file_setting} for [{state}]. Verify this payload was built from {state} energies.")
+            return payload['vel_x'].astype(np.float32), payload['vel_y'].astype(np.float32)
+
+    raise FileNotFoundError(
+        f"FATAL: Could not resolve velocities for state '{state}'.\n"
+        f"Searched per-state candidate files:\n  " + "\n  ".join(candidates) +
+        f"\nAnd looked inside: {vel_file_setting}"
+    )
+
+
 # --- Main Function ---
 def main():
     parser = argparse.ArgumentParser(description="Run Exciton Transport via Input File")
     parser.add_argument("config_file", type=str, help="Path to the simulation config.txt")
+    parser.add_argument("--dry-run", action="store_true",
+                        help="Validate config and build all operators, then exit before time integration")
     args = parser.parse_args()
 
     # --- INITIALIZE DUAL LOGGING STREAM ---
@@ -143,16 +210,8 @@ def main():
     # Load pre-compiled physics files straight from the config dictionary
     print(f"Loading physics payload: {cfg['physics_file']}")
     physics_payload = np.load(cfg['physics_file'])
-
-    print(f"Loading velocity payload: {cfg['vel_file']}")
-    velocity_payload = np.load(cfg['vel_file'])
-
     Q_vectors = physics_payload['Qpts']
     N_Q = len(Q_vectors)
-
-    # Failsafe: check mapping
-    if not np.allclose(Q_vectors, velocity_payload['Qpts']):
-        raise ValueError("FATAL: Momentum ordering mismatch between your configuration's input payloads!")
 
     # Wavepacket Initialization (Base 3D Slice)
     init_mode = cfg.get('init_mode', 'gauss')
@@ -176,21 +235,46 @@ def main():
     if isinstance(advection_flags, (bool, str)): advection_flags = (advection_flags,)
     if isinstance(gamma_decays, (float, int)): gamma_decays = (gamma_decays,)
 
+    # Strict validation: per-state tuples must line up 1-to-1
+    gamma_decays = tuple(float(g) for g in gamma_decays)  # parser leaves tuple items as strings
+    if not (len(state_names) == len(advection_flags) == len(gamma_decays)):
+        raise ValueError(
+            f"FATAL: state_names ({len(state_names)}), state_advection ({len(advection_flags)}) and "
+            f"state_gamma_decay ({len(gamma_decays)}) must all have the same length."
+        )
+    if len(set(state_names)) != len(state_names):
+        raise ValueError(f"FATAL: Duplicate entries in state_names: {state_names}")
+
+    # Strict validation: initial state must be named explicitly and exist
+    if 'initial_state' not in cfg:
+        raise ValueError(f"FATAL: 'initial_state' must be specified in the config. Options: {state_names}")
+    initial_state = cfg['initial_state']
+    if initial_state not in state_names:
+        raise ValueError(f"FATAL: initial_state '{initial_state}' not in state_names {state_names}")
+    initial_idx = state_names.index(initial_state)
+
     n_bands = len(state_names)
     print(f"\nAssembling {n_bands}-Band Phase Space Tensor for states: {state_names}")
+    print(f"  Wavepacket initialized in [{initial_state}] (band index {initial_idx}).")
 
     # --- 2. BUILD 4D TENSOR ---
     n_initial_4d = np.zeros((n_bands, cfg['grid_x'], cfg['grid_y'], N_Q), dtype=np.float32)
-    n_initial_4d[0] = occupation_matrix_3d
+    n_initial_4d[initial_idx] = occupation_matrix_3d
 
     # --- 3. DYNAMICALLY ASSEMBLE SPATIAL SOLVERS ---
+    advected = [str(f).strip().lower() == 'true' for f in advection_flags]
     spatial_solvers = []
     for i, state in enumerate(state_names):
-        flag = str(advection_flags[i]).strip().lower() == 'true'
+        flag = advected[i]
         if flag:
-            print(f"  [{state}] Advection ENABLED. Loading velocities.")
-            vx = velocity_payload[f'vel_x_{state}'].astype(np.float32)
-            vy = velocity_payload[f'vel_y_{state}'].astype(np.float32)
+            vx, vy = load_velocity_for_state(
+                vel_file_setting=cfg['vel_file'],
+                state=state,
+                Q_vectors=Q_vectors,
+                advected_count=sum(advected)
+            )
+            if vx.shape != (N_Q,) or vy.shape != (N_Q,):
+                raise ValueError(f"FATAL: [{state}] velocity shape {vx.shape} != ({N_Q},)")
         else:
             print(f"  [{state}] Advection DISABLED. Pinning spatial grid.")
             vx = np.zeros(N_Q, dtype=np.float32)
@@ -202,11 +286,16 @@ def main():
     rates_dict = {}
     for out_idx, out_state in enumerate(state_names):
         for in_idx, in_state in enumerate(state_names):
-            key = f'Rate_{out_state}_{in_state}'
+            # compile_scat_rates names payload keys Rate_{INITIAL}_{FINAL}; rates_dict is keyed
+            # (band_out=final, band_in=initial) and each matrix is indexed [Q_initial, q].
+            key = f'Rate_{in_state}_{out_state}'
             if key in physics_payload:
+                print(f"  Loaded {key}  ({in_state} -> {out_state})")
                 rates_dict[(out_idx, in_idx)] = physics_payload[key]
             elif out_idx != in_idx:
                 print(f"  Warning: No interband scattering matrix found for {key}. Assuming 0.0.")
+            else:
+                print(f"  Warning: No intraband scattering matrix found for {key}. Assuming 0.0.")
 
     print("\nInitializing Multi-Band Scattering Operator...")
     scattering_obj = MultiBandTransitionMatrix(
@@ -225,19 +314,28 @@ def main():
         scattering_solver=scattering_obj
     )
 
-    # Save standard frames array
-    frames = time_integrator.solve(n_initial_4d, save_interval=2)
-    output_data_path = f"./{cfg['gif_filename']}_frames.npz"
-    np.savez_compressed(output_data_path, frames=np.array(frames), dt=time_integrator.dt)
-    print(f"SUCCESS: Raw frames exported to {output_data_path}.")
+    if args.dry_run:
+        print(f"\nDRY RUN: setup validated. 4D tensor shape {n_initial_4d.shape}. Skipping integration.")
+        sys.stdout = logger.terminal
+        logger.close()
+        return
 
-    # Stream to HDF5
+    # Stream to HDF5 (primary output; preserves RAM by streaming frames incrementally)
+    import h5py
     hdf5_data_path = time_integrator.solve_hdf5_compressed(
         n_initial_4d,
         save_interval=2,
         output_file=f"./{cfg['gif_filename']}_frames.h5"
     )
     print(f"SUCCESS: HDF5 stream exported to {hdf5_data_path}.")
+
+    # Also export compressed .npz archive directly from the saved HDF5 dataset
+    # (avoiding the redundant duplicate RK4 run and double-buffer RAM explosion)
+    output_npz_path = f"./{cfg['gif_filename']}_frames.npz"
+    print(f"Exporting compressed archive to {output_npz_path}...")
+    with h5py.File(hdf5_data_path, 'r') as f_h5:
+        np.savez_compressed(output_npz_path, frames=f_h5['frames'][:], dt=time_integrator.dt)
+    print(f"SUCCESS: Raw frames exported to {output_npz_path}.")
 
     print("\n" + "=" * w)
     print("Job Complete".center(w))

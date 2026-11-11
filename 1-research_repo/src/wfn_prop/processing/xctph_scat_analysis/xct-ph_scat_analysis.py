@@ -18,10 +18,9 @@ S1 = f"S_{str(bright_exciton_state)}"
 S2 = f"S_{str(dark_exciton_state)}"
 
 # Target your local xctph file
-# (Matches the 4x4x4 grid from your corrections)
-xctph_h5 = "xctph_4x4x4.h5"
+xctph_h5 = '../xctph-matrix-elements-analysis/naphthalene/xctph-naph-full.h5'
 #xctph_h5 = 'xctph_8x8x8.h5'
-suffix='_4x4x4'
+suffix='_naph-full'
 
 
 # --- CORE PHYSICS FUNCTIONS ---

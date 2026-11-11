@@ -1,0 +1,28 @@
+# Naphthalene 2-state (S2 bright 1La <-> S1 dark 1Lb) with back-scattering
+physics_file = 'compiled_scat_rates_data_multi_8x8x4.npz'
+vel_file = 'final_velocity_payload_8x8x4-naph.npz'
+sim_time = 40
+
+# Per-state definitions (order = band index; all tuples must be same length)
+state_names = ('S2', 'S1')
+state_advection = (True, True)
+state_gamma_decay = (0.005, 0.0)
+initial_state = 'S2'
+
+# Physical Dimensions
+length_x = 100
+length_y = 100
+grid_x = 250
+grid_y = 250
+
+# Wavepacket Settings
+sigma_R = 3.0
+sigma_Q = 2.0
+amplitude = 1
+init_mode = 'gauss'
+target_q_index = 0
+
+# Visualization Settings
+projection_tuple ('x','y')
+gif_filename = 'naph_8x8x4_2state_backscat_S2init_40fs'
+right_panel_mode = 'qgrid'

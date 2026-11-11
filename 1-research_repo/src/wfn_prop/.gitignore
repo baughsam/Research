@@ -1,0 +1,8 @@
+# Data payloads and large simulation arrays
+*.h5
+*.npz
+*.log
+
+# Simulation frame dumps & compiled animations
+frames/
+processing/gifs/

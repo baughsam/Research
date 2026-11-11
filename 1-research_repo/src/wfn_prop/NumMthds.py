@@ -281,6 +281,10 @@ class RungeKutta4:
             frame_count = 1
 
             for step in range(self.num_steps):
+                if (step + 1) % 5 == 0 or step == 0 or (step + 1) == self.num_steps:
+                    sim_t = (step + 1) * self.dt
+                    pct = (step + 1) / self.num_steps * 100.0
+                    print(f"  Step {step + 1}/{self.num_steps} ({pct:.1f}%) | Time: {sim_t:.2f}/{self.total_sim_time} fs | Frames written: {frame_count}", flush=True)
 
                 k1_scat = self.scattering_solver.calc_scattering(n_current) if self.scattering_solver else 0.0
                 k1 = self.spatial_solver.upwindDifference(n_current) + k1_scat
@@ -429,6 +433,10 @@ class MultiBandRungeKutta4:
             frame_count = 1
 
             for step in range(self.num_steps):
+                if (step + 1) % 5 == 0 or step == 0 or (step + 1) == self.num_steps:
+                    sim_t = (step + 1) * self.dt
+                    pct = (step + 1) / self.num_steps * 100.0
+                    print(f"  Step {step + 1}/{self.num_steps} ({pct:.1f}%) | Time: {sim_t:.2f}/{self.total_sim_time} fs | Frames written: {frame_count}", flush=True)
 
                 k1_scat = self.scattering_solver.calc_scattering(n_current) if self.scattering_solver else 0.0
                 k1_adv = self._calc_advection_4d(n_current)

@@ -2,8 +2,49 @@ import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation
 from matplotlib.animation import PillowWriter
+import functools
 
 
+class _BandSummedFrames:
+    """Lazy view over multi-band frames (n_bands, Nx, Ny, Nq) that yields band-summed
+    (Nx, Ny, Nq) frames, so legacy single-band routines work unchanged on 4D data.
+    Works with in-memory lists/arrays and h5py datasets (one frame read at a time)."""
+
+    def __init__(self, frames):
+        self._frames = frames
+
+    def __len__(self):
+        return len(self._frames)
+
+    def __getitem__(self, idx):
+        if isinstance(idx, slice):
+            return [self[i] for i in range(*idx.indices(len(self)))]
+        return np.sum(np.asarray(self._frames[idx]), axis=0)
+
+    def __iter__(self):
+        for i in range(len(self)):
+            yield self[i]
+
+
+def _is_multiband(frames):
+    return np.ndim(frames[0]) == 4 if not hasattr(frames[0], 'ndim') else frames[0].ndim == 4
+
+
+def _accepts_multiband(func):
+    """Decorator: if `frames` holds 4D (n_bands, Nx, Ny, Nq) frames, sum over bands first."""
+    @functools.wraps(func)
+    def wrapper(*args, **kwargs):
+        if args:
+            if _is_multiband(args[0]):
+                args = (_BandSummedFrames(args[0]),) + args[1:]
+        elif 'frames' in kwargs and _is_multiband(kwargs['frames']):
+            kwargs['frames'] = _BandSummedFrames(kwargs['frames'])
+        return func(*args, **kwargs)
+    return wrapper
+
+
+
+@_accepts_multiband
 def export_diffusion_gif_updated2(frames, dt, save_interval, length_x, length_y, grid_x, grid_y,
                                  right_panel_mode='qgrid', target_state=None,
                                  q_vectors=None, projection=('x', 'y'),
@@ -133,6 +174,7 @@ def export_diffusion_gif_updated2(frames, dt, save_interval, length_x, length_y,
 
 
 
+@_accepts_multiband
 def export_diffusion_gif_updated1(frames, dt, save_interval, length_x, length_y, grid_x, grid_y,
                          right_panel_mode='qgrid', target_state=None,
                          q_vectors=None, projection=('x', 'y'),  # <-- New Arguments
@@ -245,6 +287,7 @@ def export_diffusion_gif_updated1(frames, dt, save_interval, length_x, length_y,
     plt.close(fig)
     print(f"GIF saved successfully as '{filename}'!")
 
+@_accepts_multiband
 def export_diffusion_gif(frames, dt, save_interval, length_x, length_y, grid_x, grid_y,
                          right_panel_mode='qgrid', target_state=None, q_Nx=None, q_Ny=None,
                          filename="diffusion.gif"):
@@ -334,6 +377,7 @@ def export_diffusion_gif(frames, dt, save_interval, length_x, length_y, grid_x, 
     plt.close(fig)
     print(f"GIF saved successfully as '{filename}'!")
 
+@_accepts_multiband
 def extract_diffusion_constant(frames: list, dt: float, save_interval: int,
                                x_grid: np.ndarray, y_grid: np.ndarray,
                                cutoff_fraction: float = 0.5,
@@ -422,6 +466,7 @@ def extract_diffusion_constant(frames: list, dt: float, save_interval: int,
 
     return D_extracted
 
+@_accepts_multiband
 def visualize_simulation(frames: list, dt: float, save_interval: int,
                          length_x: float, length_y: float, grid_x: int, grid_y: int,
                          right_panel_mode: str = 'qgrid', target_state: int=None,
@@ -540,6 +585,7 @@ def visualize_simulation(frames: list, dt: float, save_interval: int,
     plt.ioff()
     plt.show()
 
+@_accepts_multiband
 def visualize_explicit_q_slice(frames: list, dt: float, save_interval: int,
                                length_x: float, length_y: float, grid_x: int, grid_y: int,
                                target_state: int, q_vectors: np.ndarray):
@@ -605,6 +651,7 @@ def visualize_explicit_q_slice(frames: list, dt: float, save_interval: int,
     plt.ioff()
     plt.show()
 
+@_accepts_multiband
 def visualize_projected_momentum(frames: list, dt: float, save_interval: int,
                                     length_x: float, length_y: float,
                                     q_vectors: np.ndarray,
@@ -697,3 +744,228 @@ def visualize_projected_momentum(frames: list, dt: float, save_interval: int,
 
     plt.ioff()
     plt.show()
+
+
+# ======================================================================
+# Multi-state analysis (Chunk 4): populations and state-resolved diffusion
+# ======================================================================
+
+def _state_density(frame_4d, band):
+    """Momentum-integrated 2D density rho_a(x, y) = sum_Q f_a(x, y, Q)."""
+    return np.sum(np.asarray(frame_4d[band], dtype=np.float64), axis=-1)
+
+
+def extract_state_populations(frames, dt, save_interval, state_labels=None):
+    """
+    Population N_a(t) = sum_{x,y,Q} f_a for every band, streamed one frame at a time.
+    :param frames: (n_frames, n_bands, Nx, Ny, Nq) array-like (ndarray or h5py dataset)
+    :return: times_fs (n_frames,), populations (n_frames, n_bands), state_labels
+    """
+    n_frames, n_bands = len(frames), frames[0].shape[0]
+    labels = state_labels or [f"State {b}" for b in range(n_bands)]
+    times = np.arange(n_frames) * dt * save_interval
+    pops = np.zeros((n_frames, n_bands))
+    for i in range(n_frames):
+        fr = frames[i]
+        for b in range(n_bands):
+            pops[i, b] = np.sum(np.asarray(fr[b], dtype=np.float64))
+    return times, pops, labels
+
+
+def _msd_from_density(rho, X, Y):
+    """Total mass, center of mass and variance about the center of mass."""
+    m = rho.sum()
+    if m <= 0:
+        return m, (np.nan, np.nan), np.nan
+    xc, yc = (rho * X).sum() / m, (rho * Y).sum() / m
+    msd = (rho * ((X - xc) ** 2 + (Y - yc) ** 2)).sum() / m
+    return m, (xc, yc), msd
+
+
+def extract_multistate_diffusion(frames, dt, save_interval, x_grid, y_grid,
+                                 state_labels=None, fit_window_fs=None,
+                                 cutoff_fraction=0.5):
+    """
+    State-resolved and coupled diffusion constants from the spread about the center of mass:
+        MSD_a(t) = <|r - r_cm,a(t)|^2>_a,   D = (1/4) dMSD/dt   (2D).
+    Series are computed for each band and for the coupled total rho_tot = sum_a rho_a.
+
+    :param fit_window_fs: (t_min, t_max) in fs for the linear fit. If None, the last
+        (1 - cutoff_fraction) of the trajectory is used. The ballistic->diffusive
+        crossover time is only a rough estimate; verify against naphthalene literature.
+    :return: dict with times_fs, labels (bands + 'Coupled'), msd (n_frames, n_series),
+        com (n_frames, n_series, 2), pops, D (nm^2/fs), intercept, fit_mask
+    """
+    n_frames, n_bands = len(frames), frames[0].shape[0]
+    labels = list(state_labels or [f"State {b}" for b in range(n_bands)]) + ["Coupled"]
+    times = np.arange(n_frames) * dt * save_interval
+    X = np.asarray(x_grid, dtype=np.float64)
+    Y = np.asarray(y_grid, dtype=np.float64)
+
+    n_series = n_bands + 1
+    msd = np.full((n_frames, n_series), np.nan)
+    com = np.full((n_frames, n_series, 2), np.nan)
+    pops = np.zeros((n_frames, n_series))
+
+    for i in range(n_frames):
+        fr = frames[i]
+        rhos = [_state_density(fr, b) for b in range(n_bands)]
+        rhos.append(np.sum(rhos, axis=0))
+        for k, rho in enumerate(rhos):
+            m, c, v = _msd_from_density(rho, X, Y)
+            pops[i, k], com[i, k], msd[i, k] = m, c, v
+
+    if fit_window_fs is not None:
+        mask = (times >= fit_window_fs[0]) & (times <= fit_window_fs[1])
+    else:
+        mask = np.arange(n_frames) >= int(n_frames * cutoff_fraction)
+
+    D = np.full(n_series, np.nan)
+    intercept = np.full(n_series, np.nan)
+    for k in range(n_series):
+        ok = mask & np.isfinite(msd[:, k])
+        if ok.sum() >= 2:
+            slope, icpt = np.polyfit(times[ok], msd[ok, k], 1)
+            D[k], intercept[k] = slope / 4.0, icpt
+
+    return dict(times_fs=times, labels=labels, msd=msd, com=com, pops=pops,
+                D=D, intercept=intercept, fit_mask=mask)
+
+
+def plot_state_populations(times, pops, labels, filename="population_dynamics.png",
+                           show_plot=False):
+    """Absolute populations and fractions of total vs time."""
+    total = pops.sum(axis=1)
+    fig, (a1, a2) = plt.subplots(1, 2, figsize=(13, 5))
+    for b, lab in enumerate(labels):
+        a1.plot(times, pops[:, b], 'o-', label=lab)
+        a2.plot(times, 100 * pops[:, b] / total, 'o-', label=lab)
+    a1.plot(times, total, 'k--', label='Total')
+    a1.set_xlabel("Time (fs)"); a1.set_ylabel("Population (integrated mass)")
+    a2.set_xlabel("Time (fs)"); a2.set_ylabel("Fraction of total (%)")
+    a1.set_title("State populations"); a2.set_title("Population fractions")
+    for a in (a1, a2):
+        a.grid(alpha=0.3); a.legend()
+    plt.tight_layout(); plt.savefig(filename, dpi=300)
+    if show_plot: plt.show()
+    plt.close(fig)
+
+
+def plot_multistate_msd(result, filename="msd_diffusion_analysis.png", show_plot=False):
+    """MSD about center of mass for each state + coupled total, with linear fits."""
+    t, mask = result['times_fs'], result['fit_mask']
+    fig, ax = plt.subplots(figsize=(8, 6))
+    for k, lab in enumerate(result['labels']):
+        line, = ax.plot(t, result['msd'][:, k], 'o-', label=f"{lab} MSD")
+        if np.isfinite(result['D'][k]):
+            fit = 4 * result['D'][k] * t[mask] + result['intercept'][k]
+            ax.plot(t[mask], fit, '--', color=line.get_color(), lw=2.5,
+                    label=f"{lab} fit: D = {result['D'][k]:.3e} nm$^2$/fs")
+    if mask.any():
+        ax.axvline(t[mask][0], color='gray', ls=':', label='Fit start')
+    ax.set_xlabel("Time (fs)"); ax.set_ylabel("MSD about center of mass (nm$^2$)")
+    ax.set_title("State-resolved diffusion"); ax.grid(alpha=0.3); ax.legend(fontsize=8)
+    plt.tight_layout(); plt.savefig(filename, dpi=300)
+    if show_plot: plt.show()
+    plt.close(fig)
+
+
+def export_multistate_gif(frames, dt, save_interval, length_x, length_y, grid_x, grid_y,
+                          q_vectors, state_labels=None, projection=('x', 'y'),
+                          filename="gifs/multistate_diffusion.gif", fps=15):
+    """
+    Exports a 4-panel animated GIF showing state-resolved real space and momentum space
+    dynamics for coupled multi-band simulations (e.g. S2 and S1).
+    Row 0: State 0 (S2) Real Space & Momentum Space
+    Row 1: State 1 (S1) Real Space & Momentum Space
+    """
+    print(f"Rendering 4-panel multi-state GIF to {filename}...")
+    n_frames = len(frames)
+    n_bands = frames[0].shape[0] if frames[0].ndim == 4 else 1
+    labels = state_labels or [f"State {b}" for b in range(n_bands)]
+    Nq = frames[0].shape[-1]
+    
+    axis_map = {'x': 0, 'y': 1, 'z': 2}
+    ax1_idx = axis_map[projection[0]]
+    ax2_idx = axis_map[projection[1]]
+    unique_q1 = np.unique(q_vectors[:, ax1_idx])
+    unique_q2 = np.unique(q_vectors[:, ax2_idx])
+    dq1 = (unique_q1[1] - unique_q1[0]) if len(unique_q1) > 1 else 1.0
+    dq2 = (unique_q2[1] - unique_q2[0]) if len(unique_q2) > 1 else 1.0
+    q_extent = [unique_q1.min() - dq1 / 2, unique_q1.max() + dq1 / 2,
+                unique_q2.min() - dq2 / 2, unique_q2.max() + dq2 / 2]
+
+    # Precompute spatial and momentum histories for all bands
+    spatial_history = {b: [] for b in range(n_bands)}
+    mom_history = {b: [] for b in range(n_bands)}
+    pop_history = {b: [] for b in range(n_bands)}
+    
+    for fr in frames:
+        for b in range(n_bands):
+            f_b = fr[b] if fr.ndim == 4 else fr
+            # Real space density: sum over Q
+            rho = np.sum(f_b, axis=-1)
+            spatial_history[b].append(rho)
+            pop = np.sum(rho)
+            pop_history[b].append(pop)
+            
+            # Momentum density: sum over x, y
+            mass_per_q = np.sum(f_b, axis=(0, 1))
+            m_2d = np.zeros((len(unique_q1), len(unique_q2)))
+            for q_idx in range(Nq):
+                v1, v2 = q_vectors[q_idx, ax1_idx], q_vectors[q_idx, ax2_idx]
+                i1 = np.where(unique_q1 == v1)[0][0]
+                i2 = np.where(unique_q2 == v2)[0][0]
+                m_2d[i1, i2] += mass_per_q[q_idx]
+            mom_history[b].append(m_2d)
+
+    # Global color limits across all frames and states
+    max_spatial = max(np.max(spatial_history[b]) for b in range(n_bands))
+    max_mom = max(np.max(mom_history[b]) for b in range(n_bands))
+
+    fig, axes = plt.subplots(n_bands, 2, figsize=(12, 5 * n_bands))
+    if n_bands == 1:
+        axes = np.array([axes])
+
+    im_spatial = []
+    im_mom = []
+
+    for b in range(n_bands):
+        ax_sp, ax_mom = axes[b, 0], axes[b, 1]
+        
+        im_s = ax_sp.imshow(spatial_history[b][0].T, origin='lower', cmap='magma',
+                            extent=[0, length_x, 0, length_y], vmin=0, vmax=max_spatial)
+        ax_sp.set_xlabel("X (nm)")
+        ax_sp.set_ylabel("Y (nm)")
+        fig.colorbar(im_s, ax=ax_sp, fraction=0.046, pad=0.04).set_label("Exciton Mass")
+        im_spatial.append(im_s)
+        
+        im_m = ax_mom.imshow(mom_history[b][0].T, origin='lower', cmap='plasma',
+                            extent=q_extent, vmin=0, vmax=max_mom)
+        ax_mom.set_xlabel(f"q_{projection[0]}")
+        ax_mom.set_ylabel(f"q_{projection[1]}")
+        fig.colorbar(im_m, ax=ax_mom, fraction=0.046, pad=0.04).set_label("Occupancy")
+        im_mom.append(im_m)
+
+    def update(frame_idx):
+        t_fs = frame_idx * dt * save_interval
+        total_p = sum(pop_history[b][frame_idx] for b in range(n_bands))
+        artists = []
+        for b in range(n_bands):
+            p_b = pop_history[b][frame_idx]
+            pct = (p_b / total_p * 100.0) if total_p > 0 else 0.0
+            
+            im_spatial[b].set_data(spatial_history[b][frame_idx].T)
+            axes[b, 0].set_title(f"[{labels[b]}] Real Space | Pop: {pct:.1f}% | t = {t_fs:.2f} fs")
+            
+            im_mom[b].set_data(mom_history[b][frame_idx].T)
+            axes[b, 1].set_title(f"[{labels[b]}] Momentum Space (q_{projection[0]}-q_{projection[1]})")
+            
+            artists.extend([im_spatial[b], im_mom[b]])
+        return artists
+
+    ani = animation.FuncAnimation(fig, update, frames=n_frames, blit=False)
+    ani.save(filename, writer=PillowWriter(fps=fps))
+    plt.close(fig)
+    print(f"Multi-state GIF saved successfully to '{filename}'!")
+
